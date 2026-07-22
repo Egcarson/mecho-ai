@@ -1,7 +1,8 @@
 import { GenerateSettings } from "@/types/generate";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ?? "http://localhost:8000/api"
 
 export async function generate(settings: GenerateSettings) {
   const formData = new FormData();
