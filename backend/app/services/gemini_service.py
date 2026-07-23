@@ -83,14 +83,19 @@
 from fastapi import HTTPException
 from google import genai
 from google.genai import types
-
+from app.schemas.campaign_context import CampaignContext
 from app.core.config import GEMINI_API_KEY
 from app.schemas.request import GenerateRequest
 from app.schemas.response import GenerateResponse
 from app.services.prompt_builder import build_prompt
 from app.services.system_prompt import SYSTEM_PROMPT
+from app.services.trend_service import build_trend_context
+
+
 
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+print({"GEMINI API KEY": GEMINI_API_KEY})
 
 
 def get_generation_config():
@@ -104,13 +109,14 @@ def get_generation_config():
 
 
 async def generate_content(
-    request: GenerateRequest,
-    extracted_text: str,
+    context: CampaignContext,
 ) -> GenerateResponse:
 
+    trends = await build_trend_context(context)
+
     prompt = build_prompt(
-        request=request,
-        source_text=extracted_text,
+        context=context,
+        trends=trends,
     )
 
     try:

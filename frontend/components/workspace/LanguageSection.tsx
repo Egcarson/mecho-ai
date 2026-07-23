@@ -47,6 +47,7 @@ export default function LanguageSection({
             content={item.content}
             callToAction={item.call_to_action}
             hashtags={item.hashtags}
+            language={language}
           />
         ))}
       </div>

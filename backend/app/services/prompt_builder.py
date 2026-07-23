@@ -1,10 +1,11 @@
-from app.schemas.request import GenerateRequest
+from app.schemas.campaign_context import CampaignContext
 from app.services.audience_guides import AUDIENCE_GUIDES
 from app.services.platform_guides import PLATFORM_GUIDES
-
+from app.schemas.trend_context import TrendContext
+from app.schemas.trend_context import TrendContext
 
 def build_platform_guidance(platforms: list[str]) -> str:
-    sections = []
+    sections: list[str] = []
 
     for platform in platforms:
         guide = PLATFORM_GUIDES.get(platform)
@@ -15,7 +16,7 @@ def build_platform_guidance(platforms: list[str]) -> str:
 
 
 def build_audience_guidance(audiences: list[str]) -> str:
-    sections = []
+    sections: list[str] = []
 
     for audience in audiences:
         guide = AUDIENCE_GUIDES.get(audience)
@@ -37,13 +38,13 @@ Maintain identical meaning.
 
 Maintain emotional tone.
 
-Maintain CTA.
+Maintain the intended call-to-action.
 
 Use natural expressions.
 
 Avoid awkward wording.
 
-For Yoruba, Igbo, Hausa and Nigerian Pidgin, sound like a native speaker.
+For Yoruba, Igbo, Hausa and Nigerian Pidgin, write exactly as a native speaker would.
 
 If a requested language is unsupported, return the English version.
 """
@@ -78,8 +79,8 @@ Return ONLY valid JSON.
 
 
 def build_social_prompt(
-    request: GenerateRequest,
-    source_text: str,
+    context: CampaignContext,
+    trends: TrendContext,
 ) -> str:
 
     return f"""
@@ -89,65 +90,70 @@ Social Media Content Generation
 
 OBJECTIVE
 
-Generate highly engaging and platform-native content.
+Generate highly engaging, platform-native social media content.
 
-SOURCE DOCUMENT
+REFERENCE MATERIAL
 
-{source_text or "None"}
+{context.source_text or "None"}
 
 USER CONTENT
 
-{request.content or "None"}
+{context.content or "None"}
 
 CREATIVE BRIEF
 
-{request.brief or "None"}
+{context.brief or "None"}
 
 CONTENT SETTINGS
 
 Tone:
-{request.tone}
+{context.tone}
 
 Languages:
-{", ".join(request.languages)}
+{", ".join(context.languages)}
 
 Platforms:
-{", ".join(request.platforms)}
+{", ".join(context.platforms)}
 
 Audience Categories:
-{", ".join(request.audiences) or "General Public"}
+{", ".join(context.audiences) or "General Public"}
 
 Include Emojis:
-{request.includeEmojis}
+{context.include_emojis}
 
 Include Hashtags:
-{request.includeHashtags}
+{context.include_hashtags}
 
 PLATFORM GUIDANCE
 
-{build_platform_guidance(request.platforms)}
+{build_platform_guidance(context.platforms)}
 
 AUDIENCE GUIDANCE
 
-{build_audience_guidance(request.audiences)}
+{build_audience_guidance(context.audiences)}
+
+{build_trend_section(trends)}
 
 CONTENT RULES
 
-If the source material is long,
-internally summarize it first.
+Use the supplied source document as reference.
 
-Never invent facts.
+Prioritize factual accuracy.
+
+Never fabricate missing information.
+
+Do not invent facts.
 
 Generate unique content for every platform.
 
-Each platform must feel native.
+Each platform should feel native.
 
-Hooks must maximize engagement.
+Hooks should maximize engagement.
 
 Optimize for conversions.
 
 Choose hashtags based on discoverability,
-not by extracting words from the content.
+not by extracting random words from the content.
 
 {build_localization_rules()}
 
@@ -156,8 +162,8 @@ not by extracting words from the content.
 
 
 def build_professional_prompt(
-    request: GenerateRequest,
-    source_text: str,
+    context: CampaignContext,
+    trends: TrendContext,
 ) -> str:
 
     return f"""
@@ -168,63 +174,74 @@ Professional Campaign
 CAMPAIGN OVERVIEW
 
 Title:
-{request.campaignTitle}
+{context.campaign_title}
 
 Goal:
-{request.campaignGoal}
+{context.campaign_goal}
 
 Primary Audience:
-{request.targetAudience}
+{context.target_audience}
 
 Audience Categories:
-{", ".join(request.audiences) or "General Public"}
+{", ".join(context.audiences) or "General Public"}
 
 Key Message:
-{request.keyMessage}
+{context.key_message}
 
 Call To Action:
-{request.callToAction}
+{context.call_to_action}
 
 Additional Notes:
-{request.additionalNotes}
+{context.additional_notes}
 
 REFERENCE DOCUMENT
 
-{source_text or "None"}
+{context.source_text or "None"}
 
 SETTINGS
 
 Tone:
-{request.tone}
+{context.tone}
 
 Languages:
-{", ".join(request.languages)}
+{", ".join(context.languages)}
 
 Platforms:
-{", ".join(request.platforms)}
+{", ".join(context.platforms)}
+
+Include Emojis:
+{context.include_emojis}
+
+Include Hashtags:
+{context.include_hashtags}
 
 PLATFORM GUIDANCE
 
-{build_platform_guidance(request.platforms)}
+{build_platform_guidance(context.platforms)}
 
 AUDIENCE GUIDANCE
 
-{build_audience_guidance(request.audiences)}
+{build_audience_guidance(context.audiences)}
+
+{build_trend_section(trends)}
 
 CAMPAIGN RULES
 
-If the reference document is long,
-internally summarize it first.
+Use the supplied reference document as the primary source of truth.
 
 Do not invent facts.
 
+If information is unavailable, omit it rather than guessing.
+
+Never invent facts.
+
 Generate persuasive,
-conversion-focused,
-professionally structured campaigns.
+professionally structured,
+conversion-focused campaign content.
 
-Every platform should receive unique content.
+Each platform must receive unique content.
 
-Maintain the campaign objective.
+Maintain the campaign objective across all outputs.
 
 {build_localization_rules()}
 
@@ -233,17 +250,53 @@ Maintain the campaign objective.
 
 
 def build_prompt(
-    request: GenerateRequest,
-    source_text: str,
+    context: CampaignContext,
+    trends: TrendContext,
 ) -> str:
 
-    if request.workflow == "social":
+    if context.workflow == "social":
         return build_social_prompt(
-            request=request,
-            source_text=source_text,
+            context,
+            trends,
         )
 
     return build_professional_prompt(
-        request=request,
-        source_text=source_text,
+        context,
+        trends,
     )
+
+def build_trend_section(
+    trends: TrendContext,
+) -> str:
+
+    if not trends.enabled:
+        return ""
+
+    topics = "\n".join(
+        f"- {topic}" for topic in trends.topics
+    )
+
+    hashtags = ", ".join(trends.hashtags)
+
+    return f"""
+TREND INTELLIGENCE
+
+Current Country:
+{trends.country}
+
+Relevant Trending Topics:
+{topics}
+
+Suggested Trending Hashtags:
+{hashtags}
+
+IMPORTANT
+
+Use these trends ONLY if they naturally fit the campaign.
+
+Do not force unrelated current events.
+
+Prefer subtle references instead of making trends the main subject.
+
+If none are relevant, ignore them completely.
+"""
