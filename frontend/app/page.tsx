@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/landing/navbar";
 import { Hero } from "@/components/landing/hero";
 import { AudienceStrip } from "@/components/landing/audience-strip";
 import { MessageExpansion } from "@/components/landing/message-expansion";
@@ -10,6 +9,7 @@ import { FinalCTA } from "@/components/landing/final-cta";
 import { ContactSection } from "@/components/landing/contact-section";
 import { Footer } from "@/components/landing/footer";
 import { MechoLoader } from "@/components/brand/page-loader";
+import { Navbar } from "@/components/landing/navbar";
 
 export default function Home() {
   return (

@@ -7,6 +7,8 @@ type ProjectMetaProps = {
 };
 
 export function ProjectMeta({ project }: ProjectMetaProps) {
+  const languages = project.languages ?? [];
+
   return (
     <section
       className="
@@ -39,11 +41,7 @@ export function ProjectMeta({ project }: ProjectMetaProps) {
       <MetaItem
         icon={Languages}
         label="Languages"
-        value={
-          project.languages.length
-            ? project.languages.map(formatLabel).join(", ")
-            : "—"
-        }
+        value={languages.length ? languages.map(formatLabel).join(", ") : "—"}
       />
     </section>
   );
