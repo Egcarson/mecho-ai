@@ -1,32 +1,42 @@
-import { GenerateSettings } from "@/types/generate";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined.");
+}
 
-// ?? "http://localhost:8000/api"
+type ApiErrorResponse = {
+  detail?: string;
+  message?: string;
+};
 
-export async function generate(settings: GenerateSettings) {
-  const formData = new FormData();
-
-  const payload = {
-    ...settings,
-    upload: undefined,
-  };
-
-  formData.append("settings", JSON.stringify(payload));
-
-  if (settings.upload) {
-    formData.append("upload", settings.upload);
-  }
-
-  const response = await fetch(`${API_BASE_URL}/generate`, {
-    method: "POST",
-    body: formData,
+export async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error(error);
-    throw new Error(error);
+    let errorMessage = "Something went wrong. Please try again.";
+
+    try {
+      const errorData: ApiErrorResponse = await response.json();
+
+      errorMessage = errorData.detail || errorData.message || errorMessage;
+    } catch {
+      // response was not JSON
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json();

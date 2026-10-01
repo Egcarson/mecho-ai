@@ -1,20 +1,41 @@
-import Background from "@/components/welcome/background";
-import Logo from "@/components/welcome/logo";
-import NameForm from "@/components/welcome/NameForm";
-import Container from "@/components/shared/Container";
-import PageWrapper from "@/components/shared/PageWrapper";
+import { Navbar } from "@/components/landing/navbar";
+import { Hero } from "@/components/landing/hero";
+import { AudienceStrip } from "@/components/landing/audience-strip";
+import { MessageExpansion } from "@/components/landing/message-expansion";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { ProductSection } from "@/components/landing/product-section";
+import { AboutSection } from "@/components/landing/about-section";
+import { TeamSection } from "@/components/landing/team-section";
+import { FinalCTA } from "@/components/landing/final-cta";
+import { ContactSection } from "@/components/landing/contact-section";
+import { Footer } from "@/components/landing/footer";
+import { MechoLoader } from "@/components/brand/page-loader";
 
 export default function Home() {
   return (
-    <PageWrapper className="overflow-hidden">
-      <Background />
+    <>
+      <MechoLoader />
+      <main className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <Hero />
+        <AudienceStrip />
+        <MessageExpansion />
+        <HowItWorks />
 
-      <Container className="relative flex min-h-screen items-center justify-center">
-        <div className="w-full max-w-lg space-y-10">
-          <Logo />
-          <NameForm />
-        </div>
-      </Container>
-    </PageWrapper>
+        <ProductSection />
+
+        <AboutSection />
+
+        <TeamSection />
+
+        <FinalCTA />
+
+        <ContactSection />
+
+        <Footer />
+
+        {/* <section className="min-h-screen" /> */}
+      </main>
+    </>
   );
 }

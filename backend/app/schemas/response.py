@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 
+
 class PlatformContent(BaseModel):
+    
     platform: str
     hook: str
     content: str
@@ -14,3 +16,10 @@ class LanguageContent(BaseModel):
 
 class GenerateResponse(BaseModel):
     generated: list[LanguageContent]
+
+
+class SpeechGenerateResponse(BaseModel):
+    title: str
+    speech: str
+    key_memories: list[str]
+    estimated_duration: str
