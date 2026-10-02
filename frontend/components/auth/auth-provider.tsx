@@ -25,10 +25,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Resolve the current authenticated user.
+   * Resolve the browser's current session.
    *
-   * Token refreshing is intentionally delegated to authFetch so the
-   * application has one refresh pipeline and one refresh-token lock.
+   * authFetch may refresh an expired access token, but session discovery is
+   * different from a protected application request:
+   *
+   * A 401 here can simply mean the visitor is not logged in.
+   *
+   * Therefore refreshUser explicitly disables the session-expired redirect.
    */
   const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
     setLoading(true);
@@ -37,11 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authFetch("/api/auth/me", {
         method: "GET",
         cache: "no-store",
+        redirectOnSessionExpiry: false,
       });
 
       if (!response.ok) {
         setUser(null);
-
         return null;
       }
 
@@ -62,7 +66,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * Restore the browser session once when the application mounts.
+   * Restore an existing browser session once when the provider mounts.
+   *
+   * Logged-out visitors resolve normally to:
+   *
+   * user = null
+   * loading = false
+   *
+   * They are not redirected by the auth layer.
    */
   useEffect(() => {
     void refreshUser();
@@ -71,7 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Explicit logout.
    *
-   * The component initiating logout remains responsible for navigation.
+   * The logout BFF revokes the refresh token when possible and always clears
+   * the browser cookies. Navigation remains the responsibility of the
+   * component that initiated logout.
    */
   const logout = useCallback(async () => {
     try {
@@ -84,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("LOGOUT ERROR:", error);
     } finally {
       setUser(null);
+      setLoading(false);
     }
   }, []);
 
