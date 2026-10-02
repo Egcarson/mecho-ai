@@ -13,6 +13,7 @@ import {
 
 import { MechoLogo } from "@/components/brand/mecho-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Image from "next/image";
 
 type AuthShellProps = {
   children: React.ReactNode;
@@ -623,30 +624,26 @@ export function AuthShell({ children, mode = "neutral" }: AuthShellProps) {
               lg:hidden
             "
           >
-            {/* <Link
-            href="#home"
-            aria-label="Mecho AI home"
-            className="
-              flex
-              items-center
-              gap-2.5
-            "
-          >
-            <MechoLogo className="h-8 w-auto" />
-
-            <span
-              className="
-                hidden
-                text-[22px]
-                font-semibold
-                tracking-[-0.04em]
-
-                sm:inline
-              "
+            <Link
+              href="/"
+              aria-label="Mecho AI home"
+              className="flex items-center gap-2.5"
             >
-              Mecho AI
-            </span>
-          </Link> */}
+              <div className="relative size-8 shrink-0">
+                <Image
+                  src="/logo.svg"
+                  alt="Mecho AI"
+                  fill
+                  priority
+                  className="object-contain"
+                  sizes="32px"
+                />
+              </div>
+
+              <span className="hidden text-[22px] font-semibold tracking-[-0.04em] sm:inline">
+                Mecho AI
+              </span>
+            </Link>
 
             <div className="shrink-0">
               <ThemeToggle />

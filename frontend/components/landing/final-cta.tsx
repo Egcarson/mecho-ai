@@ -1,124 +1,174 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "motion/react";
-import { ArrowUpRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Check } from "lucide-react";
 
-export function FinalCTA() {
+export function FinalCta() {
   return (
     <section
       className="
-        relative
-        overflow-hidden
-        bg-background
-        py-24
-        sm:py-28
-        lg:py-32
+        px-4
+        py-20
+
+        sm:px-6
+        sm:py-24
+
+        lg:px-8
       "
     >
       <div
-        aria-hidden="true"
         className="
-          pointer-events-none
-          absolute left-1/2 top-1/2
-          h-[420px] w-[420px]
-          -translate-x-1/2 -translate-y-1/2
-          rounded-full
-          bg-mecho-purple/10
-          blur-[140px]
+          relative
+          mx-auto
+          max-w-7xl
+          overflow-hidden
+          rounded-[2.5rem]
+          border
+          border-border/60
+          bg-[#110818]
+          px-6
+          py-16
+          text-white
+          shadow-[0_40px_120px_rgba(53,16,79,0.16)]
+
+          sm:px-10
+          sm:py-20
+
+          lg:px-16
         "
-      />
-
-      <div className="relative mx-auto max-w-5xl px-4 text-center sm:px-6">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.55 }}
+      >
+        <div
+          aria-hidden="true"
           className="
-            text-xs
-            font-semibold
-            uppercase
-            tracking-[0.18em]
-            text-mecho-purple
+            absolute
+            -right-32
+            -top-32
+            size-[360px]
+            rounded-full
+            bg-mecho-gradient
+            opacity-25
+            blur-[110px]
           "
-        >
-          Ready when you are
-        </motion.p>
+        />
 
-        <motion.h2
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.65, delay: 0.08 }}
+        <div
+          aria-hidden="true"
           className="
+            absolute
+            -bottom-40
+            left-10
+            size-[320px]
+            rounded-full
+            bg-[#ff7a1a]
+            opacity-10
+            blur-[120px]
+          "
+        />
+
+        <div
+          className="
+            relative
+            z-10
             mx-auto
-            mt-5
-            max-w-4xl
-            text-4xl
-            font-semibold
-            leading-[1.02]
-            tracking-[-0.05em]
-            text-foreground
-            sm:text-5xl
-            lg:text-[4.6rem]
+            max-w-3xl
+            text-center
           "
         >
-          Your message already has somewhere to go.
-        </motion.h2>
-
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.16 }}
-          className="
-            mx-auto
-            mt-6
-            max-w-2xl
-            text-base
-            leading-8
-            text-muted-foreground
-            sm:text-lg
-          "
-        >
-          Bring the idea. Mecho helps you shape it, adapt it, and carry it
-          across the places, people and formats that matter.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.22 }}
-          className="mt-9 flex justify-center"
-        >
-          <Button
-            asChild
+          <p
             className="
-              h-12
-              rounded-full
-              border-0
-              bg-mecho-gradient
-              px-7
-              text-base
-              font-medium
-              text-white
-              shadow-[0_12px_36px_rgba(111,44,255,0.20)]
-              transition-all
-              duration-300
-              hover:-translate-y-0.5
-              hover:shadow-[0_16px_44px_rgba(111,44,255,0.28)]
+              text-xs
+              font-semibold
+              uppercase
+              tracking-[0.16em]
+              text-white/50
             "
           >
-            <Link href="/signup">
-              Start creating
-              <ArrowUpRight className="ml-2 size-4" />
+            Start with an idea
+          </p>
+
+          <h2
+            className="
+              mt-4
+              text-3xl
+              font-semibold
+              leading-[1.04]
+              tracking-[-0.05em]
+
+              sm:text-5xl
+            "
+          >
+            Make your next message go further.
+          </h2>
+
+          <p
+            className="
+              mx-auto
+              mt-5
+              max-w-xl
+              text-sm
+              leading-7
+              text-white/60
+
+              sm:text-base
+            "
+          >
+            Create audience-aware content and creative media with Mecho from one
+            connected workspace.
+          </p>
+
+          <div
+            className="
+              mt-8
+              flex
+              flex-col
+              items-center
+            "
+          >
+            <Link
+              href="/signup"
+              className="
+                group
+                inline-flex
+                h-12
+                items-center
+                gap-2
+                rounded-full
+                bg-white
+                px-6
+                text-sm
+                font-semibold
+                text-[#35104f]
+                transition-all
+                duration-300
+
+                hover:-translate-y-0.5
+              "
+            >
+              Get started for free
+              <ArrowRight
+                className="
+                  size-4
+                  transition-transform
+
+                  group-hover:translate-x-1
+                "
+              />
             </Link>
-          </Button>
-        </motion.div>
+
+            <span
+              className="
+                mt-3
+                inline-flex
+                items-center
+                gap-1.5
+                text-xs
+                text-white/45
+              "
+            >
+              <Check className="size-3.5" />
+              No credit card required
+            </span>
+          </div>
+        </div>
       </div>
     </section>
   );

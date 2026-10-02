@@ -316,8 +316,7 @@ export function CampaignCreate() {
 
           body: JSON.stringify({
             input_content: formData.brief.trim(),
-
-            memories: "",
+            memories: [],
           }),
         },
       );

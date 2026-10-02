@@ -4,20 +4,20 @@ from pydantic import BaseModel, Field
 
 
 class PlatformType(str, Enum):
-    INSTAGRAM = "Instagram"
-    LINKEDIN = "LinkedIn"
-    FACEBOOK = "Facebook"
-    YOUTUBE = "YouTube"
-    X = "X"
-    TIKTOK = "TIKTOK"
+    INSTAGRAM = "instagram"
+    LINKEDIN = "linkedin"
+    FACEBOOK = "facebook"
+    YOUTUBE = "youtube"
+    X = "x"
+    TIKTOK = "tiktok"
 
 
 class LanguageType(str, Enum):
-    ENGLISH = "English"
-    PIDGIN = "Pidgin"
-    YORUBA = "Yoruba"
-    IGBO = "Igbo"
-    HAUSA = "Hausa"
+    ENGLISH = "english"
+    PIDGIN = "pidgin"
+    YORUBA = "yoruba"
+    IGBO = "igbo"
+    HAUSA = "hausa"
 
 class PlatformContent(BaseModel):
     platform: PlatformType

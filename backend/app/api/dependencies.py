@@ -6,6 +6,7 @@ from app.services.image_generation import ImageGenerationService
 from app.services.library_service import LibraryService
 from app.services.project_service import ProjectService
 from app.services.user_service import UserService
+from app.services.image_access_service import ImageAccessService
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,3 +47,8 @@ async def get_asset_service(
     session: AsyncSession = Depends(get_session),
 ) -> AssetService:
     return AssetService(session)
+
+async def image_access(
+    session: AsyncSession = Depends(get_session),
+) -> ImageAccessService:
+    return ImageAccessService(session)

@@ -1,5 +1,3 @@
-// components/dashboard/create/workflow-shell.tsx
-
 "use client";
 
 import { ReactNode } from "react";

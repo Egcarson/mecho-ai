@@ -1,12 +1,14 @@
 from uuid import UUID
 
-from app.api.dependencies import get_image_service
+from app.api.dependencies import get_image_service, image_access
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.image_generation import (
     CreateImageGenerationRequest,
     ImageGenerationResponse,
+    ImageUsageResponse,
 )
+from app.services.image_access_service import ImageAccessService
 from app.services.image_generation import (
     ImageGenerationService,
 )
@@ -15,12 +17,13 @@ from fastapi import (
     Depends,
     status,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(
     prefix="/generations",
     tags=["Image Generation"],
 )
+
+image_route = APIRouter(tags=["Image Generation"])
 
 
 @router.post(
@@ -56,4 +59,35 @@ async def get_generation_images(
     return await service.get_generation_images(
         current_user=current_user,
         generation_uid=generation_uid,
+    )
+
+
+@image_route.get(
+    "/image/usage",
+    response_model=ImageUsageResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_image_usage(
+    current_user: User = Depends(get_current_user),
+    service: ImageAccessService = Depends(image_access)
+) -> ImageUsageResponse:
+
+    used, limit = (
+        await service.get_social_usage(
+            user_uid=current_user.uid,
+        )
+    )
+
+    return ImageUsageResponse(
+        social_used=used,
+        social_limit=limit,
+        social_available=max(
+            limit - used,
+            0,
+        ),
+        social_enabled=(
+            used < limit
+        ),
+        campaign_enabled=False,
+        speech_enabled=False,
     )

@@ -17,12 +17,13 @@ import {
   platforms,
 } from "@/components/dashboard/create/workflow-options";
 
-import type {
-  GenerationPhase,
-  GenerationResponse,
-  Option,
-  ProjectResponse,
-  SocialData,
+import {
+  socialStoryLengths,
+  type GenerationPhase,
+  type GenerationResponse,
+  type Option,
+  type ProjectResponse,
+  type SocialData,
 } from "@/components/dashboard/create/workflow-types";
 
 import { authFetch } from "@/lib/auth-fetch";
@@ -34,6 +35,7 @@ const initialData: SocialData = {
   platforms: [],
   tone: "",
   languages: [],
+  story_length: "",
   document: null,
 };
 
@@ -55,43 +57,81 @@ export function SocialCreate() {
 
   const [lastError, setLastError] = useState("");
 
-  const steps = useMemo(
-    () => [
+  const isStorytelling = formData.objective === "storytelling";
+
+  const steps = useMemo(() => {
+    const baseSteps = [
       {
+        id: "idea",
         title: "What are you creating around?",
         description:
           "Tell Mecho about your idea, or attach a document with the details. You can also do both.",
       },
       {
+        id: "objective",
         title: "What should this content achieve?",
         description:
           "Choose the outcome that matters most for this piece of content.",
       },
+    ];
+
+    if (isStorytelling) {
+      baseSteps.push({
+        id: "story_length",
+        title: "How much room should the story have?",
+        description: "Choose how developed you want the story to feel.",
+      });
+    }
+    baseSteps.push(
       {
+        id: "audience",
         title: "Who should this connect with?",
         description: "Describe the audience you want Mecho to create this for.",
       },
       {
+        id: "platforms",
         title: "Where should this content appear?",
         description: "Choose every platform you want Mecho to create for.",
       },
       {
+        id: "tone",
         title: "How should it sound?",
         description:
           "Choose the tone that best fits your message and audience.",
       },
       {
+        id: "languages",
         title: "Which languages should Mecho create it in?",
         description:
           "Choose one or more languages. Mecho will adapt the content for each one.",
       },
       {
+        id: "review",
         title: "Everything look good?",
         description: "Review your direction before Mecho starts creating.",
       },
-    ],
-    [],
-  );
+    );
+    return baseSteps;
+  }, [isStorytelling]);
+
+  function getStoryLengthGuidance(value: string) {
+    switch (value) {
+      case "short":
+        return "Keep the story concise and focused, with a clear beginning, development, and payoff.";
+
+      case "medium":
+        return "Give the story enough room for context, progression, emotional development, and a satisfying payoff.";
+
+      case "long":
+        return "Develop the story fully with richer context, stronger narrative progression, detail, and emotional depth.";
+
+      case "extended":
+        return "Create an extended, highly developed story with substantial context, narrative progression, detail, emotional depth, and a complete payoff.";
+
+      default:
+        return "";
+    }
+  }
 
   const isLastStep = step === steps.length - 1;
 
@@ -139,26 +179,31 @@ export function SocialCreate() {
   }
 
   function canContinue() {
-    switch (step) {
-      case 0:
+    const currentStep = steps[step]?.id;
+
+    switch (currentStep) {
+      case "idea":
         return Boolean(formData.subject.trim() || formData.document);
 
-      case 1:
+      case "objective":
         return Boolean(formData.objective);
 
-      case 2:
+      case "story_length":
+        return Boolean(formData.story_length);
+
+      case "audience":
         return formData.audiences.length > 0;
 
-      case 3:
+      case "platforms":
         return formData.platforms.length > 0;
 
-      case 4:
+      case "tone":
         return Boolean(formData.tone);
 
-      case 5:
+      case "languages":
         return formData.languages.length > 0;
 
-      case 6:
+      case "review":
         return true;
 
       default:
@@ -334,8 +379,7 @@ export function SocialCreate() {
 
           body: JSON.stringify({
             input_content: formData.subject.trim(),
-
-            memories: "",
+            memories: [],
           }),
         },
       );
@@ -426,109 +470,34 @@ export function SocialCreate() {
       submitLabel="Generate"
     >
       {/* =============================================
-          STEP 1 — IDEA + OPTIONAL DOCUMENT
-      ============================================== */}
+        IDEA + OPTIONAL DOCUMENT
+    ============================================== */}
 
-      {step === 0 && (
-        <div
-          className="
-            overflow-hidden
-            rounded-[1.5rem]
-            border
-            border-border/70
-            bg-background/80
-            transition-all
-
-            focus-within:border-mecho-purple/30
-            focus-within:ring-4
-            focus-within:ring-mecho-purple/5
-          "
-        >
+      {steps[step].id === "idea" && (
+        <div className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-background/80 transition-all focus-within:border-mecho-purple/30 focus-within:ring-4 focus-within:ring-mecho-purple/5">
           <textarea
             value={formData.subject}
             onChange={(event) => updateField("subject", event.target.value)}
             autoFocus
             rows={5}
             placeholder="e.g. I’m launching a new clothing collection next month and want people to start talking about it..."
-            className="
-              min-h-[180px]
-              w-full
-              resize-none
-              bg-transparent
-              px-5
-              py-4
-
-              text-[17px]
-              font-medium
-              leading-7
-              tracking-[-0.015em]
-
-              outline-none
-
-              placeholder:font-normal
-              placeholder:text-muted-foreground/50
-            "
+            className="min-h-[180px] w-full resize-none bg-transparent px-5 py-4 text-[17px] font-medium leading-7 tracking-[-0.015em] outline-none placeholder:font-normal placeholder:text-muted-foreground/50"
           />
 
-          <div
-            className="
-              border-t
-              border-border/60
-              px-4
-              py-3
-            "
-          >
+          <div className="border-t border-border/60 px-4 py-3">
             {formData.document ? (
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                "
-              >
-                <div
-                  className="
-                    flex
-                    min-w-0
-                    items-center
-                    gap-3
-                  "
-                >
-                  <div
-                    className="
-                      flex
-                      size-9
-                      shrink-0
-                      items-center
-                      justify-center
-                      rounded-xl
-                      bg-mecho-purple-soft
-                      text-mecho-purple
-                    "
-                  >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-mecho-purple-soft text-mecho-purple">
                     <FileText className="size-4" />
                   </div>
 
                   <div className="min-w-0">
-                    <p
-                      className="
-                        truncate
-                        text-sm
-                        font-medium
-                        text-foreground
-                      "
-                    >
+                    <p className="truncate text-sm font-medium text-foreground">
                       {formData.document.name}
                     </p>
 
-                    <p
-                      className="
-                        mt-0.5
-                        text-xs
-                        text-muted-foreground
-                      "
-                    >
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatFileSize(formData.document.size)}
                     </p>
                   </div>
@@ -538,58 +507,23 @@ export function SocialCreate() {
                   type="button"
                   onClick={removeDocument}
                   aria-label="Remove document"
-                  className="
-                    flex
-                    size-9
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-full
-                    text-muted-foreground
-                    transition-colors
-                    hover:bg-muted
-                    hover:text-foreground
-                  "
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <X className="size-4" />
                 </button>
               </div>
             ) : (
-              <div
-                className="
-                  flex
-                  flex-col
-                  gap-3
-
-                  sm:flex-row
-                  sm:items-center
-                  sm:justify-between
-                "
-              >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="
-                    inline-flex
-                    items-center
-                    gap-2
-                    text-sm
-                    font-medium
-                    text-muted-foreground
-                    transition-colors
-                    hover:text-foreground
-                  "
+                  className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Paperclip className="size-4" />
                   Add a document
                 </button>
 
-                <p
-                  className="
-                    text-xs
-                    text-muted-foreground/70
-                  "
-                >
+                <p className="text-xs text-muted-foreground/70">
                   PDF, DOCX or TXT
                 </p>
               </div>
@@ -607,29 +541,60 @@ export function SocialCreate() {
       )}
 
       {/* =============================================
-          STEP 2 — OBJECTIVE
-      ============================================== */}
+        OBJECTIVE
+    ============================================== */}
 
-      {step === 1 && (
+      {steps[step].id === "objective" && (
         <ChoiceGrid
           options={contentObjectives}
           selected={formData.objective}
-          onSelect={(value) => updateField("objective", value)}
+          onSelect={(value) => {
+            updateField("objective", value);
+
+            if (value !== "storytelling") {
+              updateField("story_length", "");
+            }
+          }}
         />
       )}
 
       {/* =============================================
-          STEP 3 — AUDIENCE
-      ============================================== */}
+        STORY LENGTH — STORYTELLING ONLY
+    ============================================== */}
 
-      {step === 2 && (
-        <div
-          className="
-            mx-auto
-            w-full
-            max-w-2xl
-          "
-        >
+      {steps[step].id === "story_length" && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {socialStoryLengths.map((item) => {
+            const active = formData.story_length === item.value;
+
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => updateField("story_length", item.value)}
+                className={`rounded-[1.25rem] border p-4 text-left transition-all ${
+                  active
+                    ? "border-mecho-purple/35 bg-mecho-purple-soft"
+                    : "border-border/70 bg-background hover:bg-muted/30"
+                }`}
+              >
+                <p className="text-sm font-semibold">{item.label}</p>
+
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {item.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* =============================================
+        AUDIENCE
+    ============================================== */}
+
+      {steps[step].id === "audience" && (
+        <div className="mx-auto w-full max-w-2xl">
           <TagInput
             values={formData.audiences}
             onChange={(audiences) => updateField("audiences", audiences)}
@@ -637,14 +602,7 @@ export function SocialCreate() {
             addLabel="Add"
           />
 
-          <p
-            className="
-              mt-4
-              text-sm
-              leading-6
-              text-muted-foreground
-            "
-          >
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
             Add each audience separately. Mecho will adapt the content to speak
             clearly to all of them.
           </p>
@@ -652,10 +610,10 @@ export function SocialCreate() {
       )}
 
       {/* =============================================
-          STEP 4 — PLATFORMS
-      ============================================== */}
+        PLATFORMS
+    ============================================== */}
 
-      {step === 3 && (
+      {steps[step].id === "platforms" && (
         <ChoiceGrid
           options={platforms}
           selected={formData.platforms}
@@ -665,10 +623,10 @@ export function SocialCreate() {
       )}
 
       {/* =============================================
-          STEP 5 — TONE
-      ============================================== */}
+        TONE
+    ============================================== */}
 
-      {step === 4 && (
+      {steps[step].id === "tone" && (
         <ChoiceGrid
           options={contentTones}
           selected={formData.tone}
@@ -677,10 +635,10 @@ export function SocialCreate() {
       )}
 
       {/* =============================================
-          STEP 6 — LANGUAGES
-      ============================================== */}
+        LANGUAGES
+    ============================================== */}
 
-      {step === 5 && (
+      {steps[step].id === "languages" && (
         <ChoiceGrid
           options={languages}
           selected={formData.languages}
@@ -690,19 +648,11 @@ export function SocialCreate() {
       )}
 
       {/* =============================================
-          STEP 7 — REVIEW
-      ============================================== */}
+        REVIEW
+    ============================================== */}
 
-      {step === 6 && (
-        <div
-          className="
-            overflow-hidden
-            rounded-[1.5rem]
-            border
-            border-border/70
-            bg-background/80
-          "
-        >
+      {steps[step].id === "review" && (
+        <div className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-background/80">
           <ReviewRow
             label="Idea"
             value={formData.subject || "Using attached document"}
@@ -716,6 +666,13 @@ export function SocialCreate() {
             label="Objective"
             value={getLabel(contentObjectives, formData.objective)}
           />
+
+          {formData.objective === "storytelling" && (
+            <ReviewRow
+              label="Story length"
+              value={getLabel(socialStoryLengths, formData.story_length)}
+            />
+          )}
 
           <ReviewRow label="Audiences" value={formData.audiences.join(", ")} />
 
@@ -782,21 +739,46 @@ function formatFileSize(bytes: number) {
 
 async function getApiError(response: Response, fallback: string) {
   try {
-    const data = await response.json();
+    const body = await response.json();
 
-    if (typeof data?.detail === "string") {
-      return data.detail;
+    if (typeof body?.detail === "string") {
+      return body.detail;
     }
 
-    if (Array.isArray(data?.detail)) {
-      return data.detail
-        .map((item: { msg?: string }) => item.msg)
-        .filter(Boolean)
-        .join(", ");
+    if (Array.isArray(body?.detail)) {
+      const messages = body.detail
+        .map((error: unknown) => {
+          if (typeof error !== "object" || error === null) {
+            return null;
+          }
+
+          const item = error as {
+            loc?: Array<string | number>;
+            msg?: string;
+          };
+
+          const field =
+            item.loc?.filter((part) => part !== "body").join(".") ?? "";
+
+          if (!item.msg) {
+            return null;
+          }
+
+          return field ? `${field}: ${item.msg}` : item.msg;
+        })
+        .filter(Boolean);
+
+      if (messages.length > 0) {
+        return messages.join("\n");
+      }
     }
 
-    return fallback;
+    if (typeof body?.message === "string") {
+      return body.message;
+    }
   } catch {
-    return fallback;
+    //
   }
+
+  return fallback;
 }

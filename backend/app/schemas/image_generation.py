@@ -115,3 +115,13 @@ class ImageGenerationResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
     )
+
+
+class ImageUsageResponse(BaseModel):
+    social_used: int
+    social_limit: int
+    social_available: int
+
+    social_enabled: bool
+    campaign_enabled: bool
+    speech_enabled: bool

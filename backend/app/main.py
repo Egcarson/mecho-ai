@@ -2,6 +2,7 @@ from app.api.v1.assets import router as asset_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.generation import history_router
 from app.api.v1.generation import router as gen_router
+from app.api.v1.image_generation import image_route as image_access_router
 from app.api.v1.image_generation import router as image_router
 from app.api.v1.library import router as library_router
 from app.api.v1.project import router as projects_router
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
 app.include_router(library_router)
+app.include_router(image_access_router, prefix="/api/v1")
 app.include_router(history_router, prefix="/api/v1")
 app.include_router(asset_router, prefix="/api/v1")
 app.include_router(image_router, prefix="/api/v1")

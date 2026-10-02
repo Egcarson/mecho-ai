@@ -5,42 +5,40 @@
  *   New access/refresh cookies were issued successfully.
  *
  * expired:
- *   Backend explicitly rejected the refresh credentials.
- *   The user must authenticate again.
+ *   Refresh credentials were explicitly rejected.
  *
  * failed:
- *   Refresh could not be completed because of a temporary/network/server
- *   problem. We should NOT destroy the user's session for this.
+ *   Refresh could not complete because of a temporary/network/server issue.
  */
 type RefreshResult = "refreshed" | "expired" | "failed";
 
 /**
- * Only one refresh request is allowed at a time.
+ * Only one refresh request may run at a time.
  *
- * Many dashboard components may request data simultaneously. When the
- * access token expires, they can all receive 401 together.
- *
- * Without this lock, each request would attempt to rotate the same
- * refresh token independently.
+ * Multiple authenticated requests can fail with 401 together when the
+ * access token expires. They must share one refresh operation so rotating
+ * refresh tokens are not used concurrently.
  */
 let refreshPromise: Promise<RefreshResult> | null = null;
 
 /**
- * Incremented whenever a refresh completes successfully.
+ * Incremented after every successful refresh.
  *
- * This allows requests that received an old 401 slightly later to notice
- * that another request already refreshed the session and simply retry.
+ * Requests that started before another request refreshed the session can
+ * detect that newer cookies already exist and retry directly.
  */
 let refreshGeneration = 0;
 
 /**
- * Prevent several simultaneous failed requests from all trying to log the
- * user out and redirect at once.
+ * Prevent multiple requests from trying to expire and redirect the browser
+ * at the same time.
  */
 let sessionExpiryPromise: Promise<void> | null = null;
 
 /**
- * Attempt to refresh the session through the Next.js BFF.
+ * Refresh the current session through the Next.js BFF.
+ *
+ * This is the ONLY refresh pipeline used by authenticated browser requests.
  */
 async function refreshSession(): Promise<RefreshResult> {
   if (refreshPromise) {
@@ -51,9 +49,7 @@ async function refreshSession(): Promise<RefreshResult> {
     try {
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
-
         credentials: "include",
-
         cache: "no-store",
       });
 
@@ -64,27 +60,20 @@ async function refreshSession(): Promise<RefreshResult> {
       }
 
       /**
-       * 401/403 means the refresh credentials themselves are no longer
-       * usable: expired, revoked, missing, etc.
-       *
-       * That is a real expired session.
+       * These mean the refresh credentials are actually unusable:
+       * expired, revoked, missing, invalid, etc.
        */
       if (response.status === 401 || response.status === 403) {
         return "expired";
       }
 
       /**
-       * 500/502/503/etc. are not proof that the refresh token is invalid.
-       * Don't throw the user out because the server had a temporary issue.
+       * A server failure is not proof that the user session is invalid.
        */
       return "failed";
-    } catch {
-      /**
-       * Network failure.
-       *
-       * Again, do not destroy the session just because the server could
-       * not be reached.
-       */
+    } catch (error) {
+      console.error("AUTH REFRESH ERROR:", error);
+
       return "failed";
     }
   })().finally(() => {
@@ -95,10 +84,10 @@ async function refreshSession(): Promise<RefreshResult> {
 }
 
 /**
- * Clear the local BFF cookies and send the user back to login.
+ * Clear the BFF cookies and move the browser to login.
  *
- * We use the existing logout route because it clears both HttpOnly auth
- * cookies even when the backend logout request itself fails.
+ * This should only happen when we have strong evidence that the session has
+ * genuinely expired or the freshly refreshed session is still unusable.
  */
 async function expireBrowserSession() {
   if (typeof window === "undefined") {
@@ -113,29 +102,13 @@ async function expireBrowserSession() {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
-
         credentials: "include",
-
         cache: "no-store",
       });
-    } catch {
-      /**
-       * We still redirect.
-       *
-       * The logout BFF normally clears cookies, but even if this request
-       * has a network problem, the app should stop presenting the stale
-       * authenticated dashboard.
-       */
+    } catch (error) {
+      console.error("SESSION CLEANUP ERROR:", error);
     }
 
-    /**
-     * Use location.replace rather than router.push.
-     *
-     * A hard navigation:
-     * - resets AuthProvider state,
-     * - prevents returning to the stale protected page with Back,
-     * - starts a fresh authentication lifecycle.
-     */
     window.location.replace("/login?reason=session-expired");
   })();
 
@@ -143,33 +116,32 @@ async function expireBrowserSession() {
 }
 
 /**
- * Authenticated browser fetch helper.
+ * Perform an authenticated browser request.
  *
- * Request lifecycle:
+ * Flow:
  *
  * request
  *   ↓
- * 2xx/etc. → return response
+ * not 401 → return response
  *
  * 401
  *   ↓
- * Did another request already refresh?
- *   ├─ yes → retry once
- *   └─ no  → refresh
+ * has another request already refreshed?
+ *   ├─ yes → retry once with fresh cookies
+ *   └─ no  → run shared refresh
  *              ↓
  *        refreshed → retry once
- *        expired   → logout + redirect
- *        failed    → return response to caller
+ *        expired   → clear session + redirect
+ *        failed    → return original 401 to caller
  */
 export async function authFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
-) {
+): Promise<Response> {
   const generationAtStart = refreshGeneration;
 
   let response = await fetch(input, {
     ...init,
-
     credentials: "include",
   });
 
@@ -178,24 +150,15 @@ export async function authFetch(
   }
 
   /**
-   * Another request may have successfully refreshed while this original
-   * request was still in flight.
-   *
-   * If so, simply retry with the new cookies rather than rotating the
-   * refresh token again.
+   * Another request may have refreshed the session while this request was
+   * still in flight.
    */
   if (refreshGeneration !== generationAtStart) {
     const retryResponse = await fetch(input, {
       ...init,
-
       credentials: "include",
     });
 
-    /**
-     * A retry that still returns 401 means the refreshed session is not
-     * usable. Treat it as an expired session instead of leaking
-     * "Unauthorized" into dashboard UI.
-     */
     if (retryResponse.status === 401) {
       await expireBrowserSession();
     }
@@ -206,7 +169,7 @@ export async function authFetch(
   const refreshResult = await refreshSession();
 
   /**
-   * Refresh credentials are genuinely invalid/expired/revoked.
+   * Refresh credentials are genuinely invalid.
    */
   if (refreshResult === "expired") {
     await expireBrowserSession();
@@ -217,7 +180,8 @@ export async function authFetch(
   /**
    * Temporary refresh failure.
    *
-   * Do NOT clear auth cookies or force logout here.
+   * Do not destroy the browser session here. Let the caller surface the
+   * request error instead.
    */
   if (refreshResult === "failed") {
     return response;
@@ -225,20 +189,16 @@ export async function authFetch(
 
   /**
    * Refresh succeeded.
-   * Retry the original request once using the newly written cookies.
+   * Retry the original request once using the new cookies.
    */
   response = await fetch(input, {
     ...init,
-
     credentials: "include",
   });
 
   /**
-   * A successful refresh followed immediately by another 401 indicates
-   * the resulting access session still cannot authorize this request.
-   *
-   * At this point keeping the stale dashboard visible is misleading, so
-   * terminate the browser session.
+   * A successful refresh immediately followed by another 401 means the new
+   * session still cannot authorize this request.
    */
   if (response.status === 401) {
     await expireBrowserSession();

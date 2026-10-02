@@ -1,10 +1,11 @@
+import json
+
 from app.ai.image.adapters.base import (
     CreativeSourceAdapter,
 )
 from app.ai.image.schemas import (
     CreativeSourceContent,
 )
-from app.ai.responses.campaign import CampaignGenerateResponse
 
 
 class CampaignCreativeSourceAdapter(
@@ -24,35 +25,93 @@ class CampaignCreativeSourceAdapter(
                 "Source language is required."
             )
 
-        response = (
-            CampaignGenerateResponse
-            .model_validate_json(
-                output_content,
+        try:
+            payload = json.loads(
+                output_content
             )
-        )
-
-        campaign = next(
-            (
-                item
-                for item in response.generated
-                if item.language.lower()
-                == source_language.lower()
-            ),
-            None,
-        )
-
-        if campaign is None:
+        except json.JSONDecodeError as exc:
             raise ValueError(
-                f"No generated campaign found for "
-                f"language '{source_language}'."
+                "Generated campaign content is not valid JSON."
+            ) from exc
+
+        generated = payload.get(
+            "generated",
+            [],
+        )
+
+        requested_language = (
+            source_language
+            .strip()
+            .lower()
+        )
+
+        selected_content = None
+
+        for item in generated:
+
+            language = str(
+                item.get(
+                    "language",
+                    "",
+                )
+            ).strip().lower()
+
+            if language == requested_language:
+                selected_content = item
+                break
+
+        if selected_content is None:
+            raise ValueError(
+                f"No generated campaign content found "
+                f"for language '{source_language}'."
             )
+
+        supporting_content = (
+            selected_content.get(
+                "supporting_content",
+                [],
+            )
+        )
+
+        if not isinstance(
+            supporting_content,
+            list,
+        ):
+            supporting_content = []
+
+        theme = selected_content.get(
+            "theme"
+        )
+
+        supporting_text: list[str] = []
+
+        if theme:
+            supporting_text.append(
+                str(theme)
+            )
+
+        supporting_text.extend(
+            str(item)
+            for item in supporting_content
+        )
 
         return CreativeSourceContent(
-            title=campaign.title,
-            body=campaign.main_message,
-            call_to_action=campaign.next_step,
-            supporting_text=[
-                campaign.theme,
-                *campaign.supporting_content,
-            ],
+            title=selected_content.get(
+                "title"
+            ),
+            body=(
+                selected_content.get(
+                    "main_message"
+                )
+                or ""
+            ),
+            call_to_action=(
+                selected_content.get(
+                    "next_step"
+                )
+            ),
+            supporting_text=(
+                supporting_text
+            ),
+            hashtags=[],
         )

@@ -1,10 +1,11 @@
+import json
+
 from app.ai.image.adapters.base import (
     CreativeSourceAdapter,
 )
 from app.ai.image.schemas import (
     CreativeSourceContent,
 )
-from app.ai.responses.social import SocialGenerateResponse
 
 
 class SocialCreativeSourceAdapter(
@@ -24,11 +25,23 @@ class SocialCreativeSourceAdapter(
                 "Source language is required."
             )
 
-        response = (
-            SocialGenerateResponse
-            .model_validate_json(
+        if not source_variant:
+            raise ValueError(
+                "Source platform is required."
+            )
+
+        try:
+            payload = json.loads(
                 output_content
             )
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "Generated social content is not valid JSON."
+            ) from exc
+
+        generated = payload.get(
+            "generated",
+            [],
         )
 
         requested_language = (
@@ -37,90 +50,87 @@ class SocialCreativeSourceAdapter(
             .lower()
         )
 
-        language_content = next(
-            (
-                item
-                for item in response.generated
-                if (
-                    item.language.value
-                    if hasattr(
-                        item.language,
-                        "value",
-                    )
-                    else str(
-                        item.language
-                    )
-                )
-                .strip()
-                .lower()
-                == requested_language
-            ),
-            None,
+        requested_platform = (
+            source_variant
+            .strip()
+            .lower()
         )
 
-        if language_content is None:
+        selected_language = None
+
+        for item in generated:
+
+            language = str(
+                item.get(
+                    "language",
+                    "",
+                )
+            ).strip().lower()
+
+            if language == requested_language:
+                selected_language = item
+                break
+
+        if selected_language is None:
             raise ValueError(
                 f"No generated content found for "
                 f"language '{source_language}'."
             )
 
-        if source_variant:
+        selected_content = None
 
-            requested_variant = (
-                source_variant
-                .strip()
-                .lower()
-            )
+        for item in selected_language.get(
+            "contents",
+            [],
+        ):
 
-            content = next(
-                (
-                    item
-                    for item
-                    in language_content.contents
-                    if (
-                        item.platform.value
-                        if hasattr(
-                            item.platform,
-                            "value",
-                        )
-                        else str(
-                            item.platform
-                        )
-                    )
-                    .strip()
-                    .lower()
-                    == requested_variant
-                ),
-                None,
-            )
-
-            if content is None:
-                raise ValueError(
-                    f"No generated content found for "
-                    f"variant '{source_variant}'."
+            platform = str(
+                item.get(
+                    "platform",
+                    "",
                 )
+            ).strip().lower()
 
-        else:
+            if platform == requested_platform:
+                selected_content = item
+                break
 
-            if len(
-                language_content.contents
-            ) != 1:
-                raise ValueError(
-                    "Source variant is required when "
-                    "multiple content variants exist."
-                )
-
-            content = (
-                language_content.contents[0]
+        if selected_content is None:
+            raise ValueError(
+                f"No generated content found for "
+                f"platform '{source_variant}' "
+                f"in language '{source_language}'."
             )
+
+        hashtags = selected_content.get(
+            "hashtags",
+            [],
+        )
+
+        if not isinstance(
+            hashtags,
+            list,
+        ):
+            hashtags = []
 
         return CreativeSourceContent(
-            title=content.hook,
-            body=content.content,
+            title=selected_content.get(
+                "hook"
+            ),
+            body=(
+                selected_content.get(
+                    "content"
+                )
+                or ""
+            ),
             call_to_action=(
-                content.call_to_action
+                selected_content.get(
+                    "call_to_action"
+                )
             ),
-            hashtags=(
-                content.hashtags
-            ),
+            supporting_text=[],
+            hashtags=[
+                str(item)
+                for item in hashtags
+            ],
         )

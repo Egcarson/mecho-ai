@@ -37,6 +37,9 @@ from app.services.cloudinary_service import (
 )
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.image_access_service import (
+    ImageAccessService,
+)
 
 
 class ImageGenerationService:
@@ -84,6 +87,9 @@ class ImageGenerationService:
         self.provider = (
             OpenAIImageProvider()
         )
+        self.access = ImageAccessService(
+            session
+        )
 
     async def create_image_generation(
         self,
@@ -119,6 +125,8 @@ class ImageGenerationService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Project not found.",
             )
+
+        self.access.ensure_workflow_allowed(project=project)
 
         if not generation.output_content:
             raise HTTPException(
@@ -202,6 +210,13 @@ class ImageGenerationService:
         design_brief = (
             data.model_dump(
                 mode="json",
+            )
+        )
+
+        await (
+            self.access
+            .ensure_new_social_attempt_available(
+                current_user=current_user,
             )
         )
 
@@ -406,6 +421,7 @@ class ImageGenerationService:
             )
             for image in images
         ]
+        
 
     @staticmethod
     def _resolve_size(

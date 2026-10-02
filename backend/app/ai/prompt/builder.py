@@ -2,6 +2,7 @@ from typing import cast
 
 from app.ai.context.base import PromptContext
 from app.ai.context.campaign import CampaignPromptContext
+from app.ai.context.content import ContentPromptContext
 from app.ai.context.serializer import (
         ContextSerializer,
 )
@@ -11,6 +12,7 @@ from app.ai.prompt.campaign import (
 )
 from app.ai.prompt.length import CAMPAIGN_LENGTH_GUIDANCE
 from app.ai.prompt.social import (
+        SOCIAL_LENGTH_GUIDANCE,
         SOCIAL_PROMPT,
 )
 from app.ai.prompt.speech import (
@@ -57,6 +59,21 @@ class PromptBuilder:
         )
 
         if workflow == ProjectWorkflow.SOCIAL:
+
+            social_context = cast(
+                ContentPromptContext,
+                context,
+            )
+
+            context_data["length"] = (
+                social_context.length.value
+            )
+
+            context_data["length_guidance"] = (
+                SOCIAL_LENGTH_GUIDANCE[
+                    social_context.length
+                ]
+            )
 
             return SOCIAL_PROMPT.format(
                 **context_data,

@@ -24,14 +24,12 @@ type SpeechResultProps = {
   generation: SpeechResultGeneration;
 
   /**
-   * Speech output itself does not contain
-   * the language, so the workflow/project
-   * supplies it.
+   * Speech output does not include its own language,
+   * so the workflow/project passes it into the result.
    */
   language: string;
 
   onBack: () => void;
-
   backLabel?: string;
 };
 
@@ -47,61 +45,26 @@ export function SpeechResult({
   );
 
   const [copied, setCopied] = useState(false);
-
   const [showVoiceGenerator, setShowVoiceGenerator] = useState(false);
 
   if (!parsed) {
     return (
-      <main
-        className="
-          flex
-          min-h-[70vh]
-          items-center
-          justify-center
-          px-4
-        "
-      >
+      <main className="flex min-h-[70vh] items-center justify-center px-4">
         <div className="text-center">
-          <h1
-            className="
-              text-2xl
-              font-semibold
-              tracking-[-0.04em]
-            "
-          >
+          <h1 className="text-2xl font-semibold tracking-[-0.04em]">
             Speech result unavailable
           </h1>
 
-          <p
-            className="
-              mt-3
-              text-sm
-              text-muted-foreground
-            "
-          >
-            Mecho couldn't read this speech result.
+          <p className="mt-3 text-sm text-muted-foreground">
+            Mecho couldn&apos;t read this speech result.
           </p>
 
           <button
             type="button"
             onClick={onBack}
-            className="
-              mt-6
-              inline-flex
-              h-10
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-border/60
-              px-5
-              text-sm
-              font-medium
-              transition-colors
-
-              hover:bg-muted/50
-            "
+            className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border/60 px-5 text-sm font-medium transition-colors hover:bg-muted/50"
           >
+            <ArrowLeft className="size-4" />
             {backLabel}
           </button>
         </div>
@@ -120,7 +83,6 @@ export function SpeechResult({
       await navigator.clipboard.writeText(copyText);
 
       setCopied(true);
-
       toast.success("Speech copied.");
 
       window.setTimeout(() => {
@@ -132,125 +94,53 @@ export function SpeechResult({
   }
 
   return (
-    <main
-      className="
-        relative
-        min-h-screen
-        overflow-hidden
-      "
-    >
-      {/* =================================================
+    <main className="relative min-h-screen overflow-hidden">
+      {/* ======================================================
           AMBIENT BACKGROUND
-      ================================================== */}
+      ====================================================== */}
 
       <div
         aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          left-[8%]
-          top-[14%]
-          size-[320px]
-          rounded-full
-          bg-mecho-purple/7
-          blur-[140px]
-        "
+        className="pointer-events-none absolute left-[8%] top-[14%] size-[320px] rounded-full bg-mecho-purple/7 blur-[140px]"
       />
 
       <div
         aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          bottom-[10%]
-          right-[8%]
-          size-[280px]
-          rounded-full
-          bg-mecho-orange/6
-          blur-[140px]
-        "
+        className="pointer-events-none absolute bottom-[10%] right-[8%] size-[280px] rounded-full bg-mecho-orange/6 blur-[140px]"
       />
 
-      <div
-        className="
-          relative
-          mx-auto
-          w-full
-          max-w-5xl
-          px-4
-          pb-20
-          pt-8
-
-          sm:px-6
-          sm:pt-10
-
-          lg:px-8
-          lg:pt-12
-        "
-      >
-        {/* =================================================
-            RESULT INTRO
-        ================================================== */}
-
-        <div
-          className="
-            flex
-            flex-col
-            gap-6
-
-            sm:flex-row
-            sm:items-end
-            sm:justify-between
-          "
+      <div className="relative mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pt-10 lg:px-8 lg:pt-12">
+        {/* ======================================================
+            TOP BACK ACTION
+        ====================================================== */}
+        {/* 
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
+          <ArrowLeft className="size-4" />
+          {backLabel}
+        </button> */}
+
+        {/* ======================================================
+            RESULT INTRO
+        ====================================================== */}
+
+        <div className=" flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p
-              className="
-                text-xs
-                font-semibold
-                uppercase
-                tracking-[0.14em]
-                text-mecho-purple
-              "
-            >
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-mecho-purple">
               Speech
             </p>
 
-            <h1
-              className="
-                mt-3
-                text-4xl
-                font-semibold
-                tracking-[-0.05em]
-
-                sm:text-5xl
-              "
-            >
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
               Your speech is ready.
             </h1>
 
-            <div
-              className="
-                mt-4
-                flex
-                flex-wrap
-                items-center
-                gap-x-4
-                gap-y-2
-                text-sm
-                text-muted-foreground
-              "
-            >
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
               {safeParsed.estimated_duration && (
-                <span
-                  className="
-                    inline-flex
-                    items-center
-                    gap-1.5
-                  "
-                >
+                <span className="inline-flex items-center gap-1.5">
                   <Clock3 className="size-4" />
-
                   {safeParsed.estimated_duration}
                 </span>
               )}
@@ -264,27 +154,7 @@ export function SpeechResult({
             onClick={() => {
               void handleCopy();
             }}
-            className="
-              inline-flex
-              h-10
-              shrink-0
-              items-center
-              justify-center
-              gap-2
-              rounded-full
-              border
-              border-border/60
-              bg-background
-              px-4
-              text-sm
-              font-medium
-              text-foreground/75
-              transition-all
-
-              hover:border-mecho-purple/20
-              hover:bg-mecho-purple-soft/40
-              hover:text-mecho-purple
-            "
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-border/60 bg-background px-4 text-sm font-medium text-foreground/75 transition-all hover:border-mecho-purple/20 hover:bg-mecho-purple-soft/40 hover:text-mecho-purple"
           >
             {copied ? (
               <Check className="size-4" />
@@ -296,129 +166,43 @@ export function SpeechResult({
           </button>
         </div>
 
-        {/* =================================================
-            SPEECH
-        ================================================== */}
+        {/* ======================================================
+            SPEECH CONTENT
+        ====================================================== */}
 
-        <section
-          className="
-            mt-10
-            overflow-hidden
-            rounded-[1.75rem]
-            border
-            border-border/60
-            bg-background/85
-            shadow-[0_22px_80px_rgba(39,12,61,0.06)]
-            backdrop-blur-xl
-          "
-        >
-          <div
-            className="
-              border-b
-              border-border/60
-              px-6
-              py-7
-
-              sm:px-8
-              sm:py-8
-            "
-          >
-            <div
-              className="
-                flex
-                size-10
-                items-center
-                justify-center
-                rounded-xl
-                bg-mecho-purple-soft/60
-                text-mecho-purple
-              "
-            >
+        <section className="mt-10 overflow-hidden rounded-[1.75rem] border border-border/60 bg-background/85 shadow-[0_22px_80px_rgba(39,12,61,0.06)] backdrop-blur-xl">
+          <div className="border-b border-border/60 px-6 py-7 sm:px-8 sm:py-8">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-mecho-purple-soft/60 text-mecho-purple">
               <Quote className="size-4" />
             </div>
 
-            <h2
-              className="
-                mt-5
-                max-w-3xl
-                text-3xl
-                font-semibold
-                leading-tight
-                tracking-[-0.04em]
-
-                sm:text-4xl
-              "
-            >
+            <h2 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
               {safeParsed.title}
             </h2>
           </div>
 
-          <div
-            className="
-              px-6
-              py-8
-
-              sm:px-8
-              sm:py-10
-            "
-          >
-            <div
-              className="
-                max-w-3xl
-                whitespace-pre-line
-                text-[16px]
-                leading-8
-                text-foreground/88
-
-                sm:text-[17px]
-                sm:leading-9
-              "
-            >
+          <div className="px-6 py-8 sm:px-8 sm:py-10">
+            <div className="max-w-3xl whitespace-pre-line text-[16px] leading-8 text-foreground/88 sm:text-[17px] sm:leading-9">
               {safeParsed.speech}
             </div>
           </div>
         </section>
 
-        {/* =================================================
+        {/* ======================================================
             MEMORIES USED
-        ================================================== */}
+        ====================================================== */}
 
-        {safeParsed.key_memories?.length > 0 && (
+        {safeParsed.key_memories.length > 0 && (
           <section className="mt-8">
-            <p
-              className="
-                text-xs
-                font-semibold
-                uppercase
-                tracking-[0.13em]
-                text-muted-foreground
-              "
-            >
+            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">
               Memories woven into the speech
             </p>
 
-            <div
-              className="
-                mt-4
-                flex
-                flex-wrap
-                gap-2
-              "
-            >
+            <div className="mt-4 flex flex-wrap gap-2">
               {safeParsed.key_memories.map((memory, index) => (
                 <span
                   key={`${memory}-${index}`}
-                  className="
-                      rounded-full
-                      border
-                      border-border/60
-                      bg-background/70
-                      px-4
-                      py-2
-                      text-sm
-                      leading-5
-                      text-foreground/75
-                    "
+                  className="rounded-full border border-border/60 bg-background/70 px-4 py-2 text-sm leading-5 text-foreground/75"
                 >
                   {memory}
                 </span>
@@ -427,9 +211,12 @@ export function SpeechResult({
           </section>
         )}
 
-        {/* =================================================
-            MEDIA
-        ================================================== */}
+        {/* ======================================================
+            VOICE
+
+            Speech only supports Voice.
+            No Image or Video generator is mounted here.
+        ====================================================== */}
 
         <MediaActions
           onVoice={() => setShowVoiceGenerator((current) => !current)}
@@ -439,25 +226,14 @@ export function SpeechResult({
           <>
             {language ? (
               <VoiceGenerator
+                workflow="speech"
                 projectUid={generation.project_uid}
                 generationUid={generation.uid}
                 language={language}
                 platform="speech"
               />
             ) : (
-              <div
-                className="
-                  mt-4
-                  rounded-2xl
-                  border
-                  border-border/60
-                  bg-muted/20
-                  px-5
-                  py-4
-                  text-sm
-                  text-muted-foreground
-                "
-              >
+              <div className="mt-4 rounded-2xl border border-border/60 bg-muted/20 px-5 py-4 text-sm text-muted-foreground">
                 Speech language is unavailable, so voice generation cannot be
                 opened for this result.
               </div>
@@ -465,32 +241,16 @@ export function SpeechResult({
           </>
         )}
 
-        {/* =================================================
-            BOTTOM ACTION
-        ================================================== */}
+        {/* ======================================================
+            BOTTOM BACK ACTION
+        ====================================================== */}
 
         <button
           type="button"
           onClick={onBack}
-          className="
-            mt-6
-            inline-flex
-            h-11
-            items-center
-            gap-2
-            rounded-full
-            border
-            border-border/70
-            px-5
-            text-sm
-            font-medium
-            transition-colors
-
-            hover:bg-muted/50
-          "
+          className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border/70 px-5 text-sm font-medium transition-colors hover:bg-muted/50"
         >
           <ArrowLeft className="size-4" />
-
           {backLabel}
         </button>
       </div>
@@ -499,9 +259,7 @@ export function SpeechResult({
 }
 
 function parseSpeechOutput(value: string): SpeechGenerateResponse | null {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
 
   try {
     const parsed = JSON.parse(value);
@@ -518,11 +276,9 @@ function parseSpeechOutput(value: string): SpeechGenerateResponse | null {
     return {
       title: parsed.title,
       speech: parsed.speech,
-
       key_memories: Array.isArray(parsed.key_memories)
         ? parsed.key_memories
         : [],
-
       estimated_duration:
         typeof parsed.estimated_duration === "string"
           ? parsed.estimated_duration

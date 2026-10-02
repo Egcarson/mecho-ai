@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 export type ImageDesignStyle =
   | "auto"
   | "minimal"
@@ -85,9 +87,8 @@ export async function createQuickDesign(
   generationUid: string,
   payload: QuickDesignPayload,
 ): Promise<GeneratedImage> {
-  const response = await fetch(`/api/generations/${generationUid}/images`, {
+  const response = await authFetch(`/api/generations/${generationUid}/images`, {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -105,9 +106,8 @@ export async function createCustomDesign(
   generationUid: string,
   payload: CustomDesignPayload,
 ): Promise<GeneratedImage> {
-  const response = await fetch(`/api/generations/${generationUid}/images`, {
+  const response = await authFetch(`/api/generations/${generationUid}/images`, {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -124,9 +124,8 @@ export async function createCustomDesign(
 export async function getGeneratedImages(
   generationUid: string,
 ): Promise<GeneratedImage[]> {
-  const response = await fetch(`/api/generations/${generationUid}/images`, {
+  const response = await authFetch(`/api/generations/${generationUid}/images`, {
     method: "GET",
-    credentials: "include",
     cache: "no-store",
   });
 

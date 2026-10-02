@@ -24,6 +24,15 @@ from app.repositories.voice_generation import (
 from app.repositories.voice_provider_job import (
     VoiceProviderJobRepository,
 )
+from app.models.enums import (
+    ProjectWorkflow,
+    VoiceGenerationStatus,
+    VoiceProviderJobStatus,
+)
+
+from app.services.voice_access_service import (
+    VoiceAccessService,
+)
 from app.schemas.voice_generation import (
     CreateVoiceGenerationRequest,
     VoiceGenerationResponse,
@@ -71,6 +80,9 @@ class VoiceGenerationService:
         self.chunker = VoiceScriptChunker()
 
         self.composer = AudioComposer()
+        self.access = VoiceAccessService(
+            session
+        )
 
     async def create_voice_generation(
         self,
@@ -80,53 +92,53 @@ class VoiceGenerationService:
         data: CreateVoiceGenerationRequest,
     ) -> VoiceGenerationResponse:
 
-        project = (
-            await self.projects.get_by_uid_and_user(
-                project_uid,
-                current_user.uid,
-            )
+        project = await self.projects.get_by_uid_and_user(
+            project_uid,
+            current_user.uid,
         )
 
         if project is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=(status.HTTP_404_NOT_FOUND),
                 detail="Project not found.",
             )
 
-        generation = (
-            await self.generations.get_by_uid_and_project(
-                generation_uid,
-                project_uid,
-            )
+        # Campaign and Speech are currently locked.
+        #
+        # This happens before extraction,
+        # voice resolution or YarnGPT access.
+        self.access.ensure_workflow_allowed(
+            project=project,
+        )
+
+        generation = await self.generations.get_by_uid_and_project(
+            generation_uid,
+            project_uid,
         )
 
         if generation is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=(status.HTTP_404_NOT_FOUND),
                 detail="Generation not found.",
             )
 
         if not generation.output_content:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Generation has no generated content."
-                ),
+                status_code=(status.HTTP_400_BAD_REQUEST),
+                detail=("Generation has no generated content."),
             )
 
         try:
             content = self.extractor.extract(
                 workflow=project.workflow,
-                output_content=(
-                    generation.output_content
-                ),
+                output_content=(generation.output_content),
                 language=data.language,
                 platform=data.platform,
             )
 
         except ValueError as exc:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=(status.HTTP_400_BAD_REQUEST),
                 detail=str(exc),
             ) from exc
 
@@ -134,74 +146,54 @@ class VoiceGenerationService:
             data.voice,
         )
 
-        voice_generation = (
-            await self.voices
-            .get_by_generation_content_voice(
-                generation_uid=(
-                    generation.uid
-                ),
-                language=content.language,
-                platform=content.platform,
-                voice=voice,
-            )
+        voice_generation = await self.voices.get_by_generation_content_voice(
+            generation_uid=(generation.uid),
+            language=(content.language),
+            platform=(content.platform),
+            voice=voice,
         )
 
-        # Already successfully generated.
-        # Return existing Cloudinary audio.
+        # Existing successful voice:
+        # simply return it.
+        #
+        # This must NOT consume another
+        # free attempt.
         if (
             voice_generation is not None
-            and voice_generation.status
-            == VoiceGenerationStatus.COMPLETED
+            and voice_generation.status == VoiceGenerationStatus.COMPLETED
             and voice_generation.audio_url
         ):
-            return (
-                VoiceGenerationResponse
-                .model_validate(
-                    voice_generation,
-                )
-            )
+            return VoiceGenerationResponse.model_validate(voice_generation)
 
-        # First attempt.
+        # A new database VoiceGeneration means
+        # a genuinely new quota-consuming attempt.
+        #
+        # Retrying the SAME failed/incomplete
+        # VoiceGeneration does not consume
+        # another quota slot.
         if voice_generation is None:
-
-            voice_generation = (
-                VoiceGeneration(
-                    generation_uid=(
-                        generation.uid
-                    ),
-                    language=(
-                        content.language
-                    ),
-                    platform=(
-                        content.platform
-                    ),
-                    voice=voice,
-                    provider="yarngpt",
-                    response_format="mp3",
-                    status=(
-                        VoiceGenerationStatus
-                        .PENDING
-                    ),
-                )
+            await self.access.ensure_new_social_attempt_available(
+                current_user=current_user,
             )
 
-            voice_generation = (
-                await self.voices.create(
-                    voice_generation,
-                )
+            voice_generation = VoiceGeneration(
+                generation_uid=(generation.uid),
+                language=(content.language),
+                platform=(content.platform),
+                voice=voice,
+                provider="yarngpt",
+                response_format="mp3",
+                status=(VoiceGenerationStatus.PENDING),
             )
 
-        # Could be retrying a previously
-        # failed/incomplete generation.
-        voice_generation = (
-            await self.voices.update(
-                voice_generation,
-                status=(
-                    VoiceGenerationStatus
-                    .PROCESSING
-                ),
-                error_message=None,
-            )
+            voice_generation = await self.voices.create(voice_generation)
+
+        # Existing failed/incomplete voice generation
+        # reaches here and resumes the durable flow.
+        voice_generation = await self.voices.update(
+            voice_generation,
+            status=(VoiceGenerationStatus.PROCESSING),
+            error_message=None,
         )
 
         try:
@@ -217,21 +209,16 @@ class VoiceGenerationService:
                 ]
             ] = []
 
-            for index, script_chunk in enumerate(
-                scripts
-            ):
-                audio = (
-                    await self._process_chunk(
-                        voice_generation=(
-                            voice_generation
-                        ),
-                        script_chunk=(
-                            script_chunk
-                        ),
-                        chunk_index=index,
-                        voice=voice,
-                        response_format="mp3",
-                    )
+            for (
+                index,
+                script_chunk,
+            ) in enumerate(scripts):
+                audio = await self._process_chunk(
+                    voice_generation=(voice_generation),
+                    script_chunk=(script_chunk),
+                    chunk_index=index,
+                    voice=voice,
+                    response_format="mp3",
                 )
 
                 audio_chunks.append(
@@ -241,83 +228,46 @@ class VoiceGenerationService:
                     )
                 )
 
-            final_audio = (
-                self._combine_audio_chunks(
-                    audio_chunks,
-                    response_format="mp3",
-                )
+            final_audio = self._combine_audio_chunks(
+                audio_chunks,
+                response_format="mp3",
             )
 
-            uploaded = (
-                CloudinaryService
-                .upload_audio(
-                    BytesIO(
-                        final_audio
-                    ),
-                )
+            uploaded = CloudinaryService.upload_audio(
+                BytesIO(final_audio),
             )
 
-            voice_generation = (
-                await self.voices.update(
-                    voice_generation,
-                    status=(
-                        VoiceGenerationStatus
-                        .COMPLETED
-                    ),
-                    audio_url=(
-                        uploaded["url"]
-                    ),
-                    cloudinary_public_id=(
-                        uploaded[
-                            "public_id"
-                        ]
-                    ),
-                    error_message=None,
-                )
+            voice_generation = await self.voices.update(
+                voice_generation,
+                status=(VoiceGenerationStatus.COMPLETED),
+                audio_url=(uploaded["url"]),
+                cloudinary_public_id=(uploaded["public_id"]),
+                error_message=None,
             )
 
-            return (
-                VoiceGenerationResponse
-                .model_validate(
-                    voice_generation,
-                )
-            )
+            return VoiceGenerationResponse.model_validate(voice_generation)
 
         except HTTPException as exc:
-
             await self.voices.update(
                 voice_generation,
-                status=(
-                    VoiceGenerationStatus
-                    .FAILED
-                ),
-                error_message=str(
-                    exc.detail,
-                ),
+                status=(VoiceGenerationStatus.FAILED),
+                error_message=str(exc.detail),
             )
 
             raise
 
         except Exception as exc:
-
             await self.voices.update(
                 voice_generation,
-                status=(
-                    VoiceGenerationStatus
-                    .FAILED
-                ),
+                status=(VoiceGenerationStatus.FAILED),
                 error_message=str(exc),
             )
 
             raise HTTPException(
-                status_code=(
-                    status
-                    .HTTP_500_INTERNAL_SERVER_ERROR
-                ),
-                detail=(
-                    "Voice generation failed."
-                ),
+                status_code=(status.HTTP_500_INTERNAL_SERVER_ERROR),
+                detail=("Voice generation failed."),
             ) from exc
+
 
     async def get_generation_voices(
         self,

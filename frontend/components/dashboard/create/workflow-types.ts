@@ -1,3 +1,26 @@
+export const socialStoryLengths = [
+  {
+    label: "Short",
+    value: "short",
+    description: "A concise story with a quick narrative arc.",
+  },
+  {
+    label: "Medium",
+    value: "medium",
+    description: "More room for context, development, and payoff.",
+  },
+  {
+    label: "Long",
+    value: "long",
+    description: "A fuller story with stronger detail and progression.",
+  },
+  {
+    label: "Extended",
+    value: "extended",
+    description: "A deeply developed story with maximum narrative room.",
+  },
+];
+
 export type Option = {
   label: string;
   value: string;
@@ -29,6 +52,7 @@ export type GenerationResponse = {
 export type SocialData = {
   subject: string;
   objective: string;
+  story_length: string;
   audiences: string[];
   platforms: string[];
   tone: string;

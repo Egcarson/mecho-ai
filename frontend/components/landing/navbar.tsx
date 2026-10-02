@@ -1,29 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
-
 import {
-  CircleHelp,
   Home,
+  Info,
   LayoutDashboard,
-  LogIn,
   LogOut,
-  Menu,
-  PackageOpen,
+  Mail,
   Settings,
-  UserPlus,
-  Workflow,
+  Sparkles,
+  UserRound,
+  UsersRound,
 } from "lucide-react";
 
-import { useAuth } from "@/components/auth/auth-provider";
-
-import { UserAvatar } from "@/components/auth/user-avatar";
-
 import { MechoLogo } from "@/components/brand/mecho-logo";
-
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/components/auth/auth-provider";
+import Image from "next/image";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Button } from "@/components/ui/button";
 
@@ -36,30 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-
-const navLinks = [
-  {
-    label: "Home",
-    href: "#home",
-    id: "home",
-  },
-  {
-    label: "How it works",
-    href: "#how-it-works",
-    id: "how-it-works",
-  },
-  {
-    label: "Product",
-    href: "#product",
-    id: "product",
-  },
+const desktopLinks = [
   {
     label: "About",
     href: "#about",
@@ -77,7 +51,7 @@ const navLinks = [
   },
 ];
 
-const mobileNavItems = [
+const mobileLinks = [
   {
     label: "Home",
     href: "#home",
@@ -85,50 +59,62 @@ const mobileNavItems = [
     icon: Home,
   },
   {
-    label: "Product",
-    href: "#product",
-    id: "product",
-    icon: PackageOpen,
+    label: "About",
+    href: "#about",
+    id: "about",
+    icon: Info,
   },
   {
-    label: "How it works",
-    href: "#how-it-works",
-    id: "how-it-works",
-    icon: Workflow,
+    label: "Team",
+    href: "#team",
+    id: "team",
+    icon: UsersRound,
   },
   {
     label: "Contact",
     href: "#contact",
     id: "contact",
-    icon: CircleHelp,
+    icon: Mail,
   },
 ];
 
 export function Navbar() {
   const [activeSection, setActiveSection] = useState("home");
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const { user, loading, logout } = useAuth();
 
+  const initials = useMemo(() => {
+    if (!user) return "";
+
+    const first = user.first_name?.charAt(0) ?? "";
+
+    const last = user.last_name?.charAt(0) ?? "";
+
+    return `${first}${last}`.toUpperCase();
+  }, [user]);
+
   const fullName = useMemo(() => {
-    if (!user) {
-      return "";
-    }
+    if (!user) return "";
 
     return [user.first_name, user.middle_name, user.last_name]
       .filter(Boolean)
       .join(" ");
   }, [user]);
 
+  /**
+   * Track the landing section currently visible.
+   *
+   * Both the desktop navigation and mobile app-style dock
+   * use this state so navigation feedback stays consistent.
+   */
   useEffect(() => {
-    const sections = navLinks
-      .map((link) => document.getElementById(link.id))
+    const ids = ["home", "about", "team", "contact"];
+
+    const sections = ids
+      .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section));
 
-    if (!sections.length) {
-      return;
-    }
+    if (!sections.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -136,33 +122,35 @@ export function Navbar() {
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
 
-        if (visible.length) {
+        if (visible.length > 0) {
           setActiveSection(visible[0].target.id);
         }
       },
       {
-        root: null,
-        rootMargin: "-25% 0px -60% 0px",
-        threshold: [0, 0.1, 0.25, 0.5, 0.75],
+        rootMargin: "-25% 0px -58% 0px",
+
+        threshold: [0, 0.1, 0.25, 0.5],
       },
     );
 
     sections.forEach((section) => observer.observe(section));
 
     return () => {
+      sections.forEach((section) => observer.unobserve(section));
+
       observer.disconnect();
     };
   }, []);
 
   async function handleLogout() {
     await logout();
-
-    setMenuOpen(false);
   }
 
   return (
     <>
-      {/* Top navigation */}
+      {/* =====================================================
+          DESKTOP NAVIGATION
+      ====================================================== */}
 
       <header
         className="
@@ -170,11 +158,11 @@ export function Navbar() {
           inset-x-0
           top-0
           z-50
-          px-3
-          pt-3
+          hidden
+          px-5
+          pt-4
 
-          sm:px-6
-          sm:pt-4
+          lg:block
         "
       >
         <nav
@@ -185,19 +173,19 @@ export function Navbar() {
             max-w-7xl
             items-center
             justify-between
-            rounded-2xl
+            rounded-[1.35rem]
             border
-            border-border/70
+            border-border/60
             bg-background/80
-            px-4
-            shadow-[0_8px_40px_rgba(38,17,58,0.06)]
-            backdrop-blur-xl
-
-            sm:px-6
+            px-5
+            shadow-[0_8px_40px_rgba(38,17,58,0.05)]
+            backdrop-blur-2xl
           "
         >
+          {/* Brand */}
+
           <Link
-            href="#home"
+            href="/"
             aria-label="Mecho AI home"
             className="
               flex
@@ -209,12 +197,9 @@ export function Navbar() {
 
             <span
               className="
-                hidden
-                text-[22px]
+                text-[20px]
                 font-semibold
-                tracking-[-0.04em]
-
-                sm:inline
+                tracking-[-0.045em]
               "
             >
               Mecho AI
@@ -225,14 +210,12 @@ export function Navbar() {
 
           <div
             className="
-              hidden
+              flex
               items-center
               gap-1
-
-              lg:flex
             "
           >
-            {navLinks.map((link) => {
+            {desktopLinks.map((link) => {
               const active = activeSection === link.id;
 
               return (
@@ -240,22 +223,19 @@ export function Navbar() {
                   key={link.id}
                   href={link.href}
                   className={`
-                      group
                       relative
                       rounded-full
                       px-4
                       py-2
-                      text-[15px]
+                      text-sm
                       font-medium
                       transition-colors
                       duration-200
 
-                      xl:text-base
-
                       ${
                         active
                           ? "text-mecho-purple"
-                          : "text-muted-foreground hover:text-mecho-purple"
+                          : "text-muted-foreground hover:text-foreground"
                       }
                     `}
                 >
@@ -265,18 +245,14 @@ export function Navbar() {
                     className={`
                         absolute
                         inset-x-4
-                        bottom-1
+                        bottom-0
                         h-px
-                        origin-left
+                        origin-center
                         bg-mecho-gradient
                         transition-transform
                         duration-300
 
-                        ${
-                          active
-                            ? "scale-x-100"
-                            : "scale-x-0 group-hover:scale-x-100"
-                        }
+                        ${active ? "scale-x-100" : "scale-x-0"}
                       `}
                   />
                 </Link>
@@ -288,11 +264,9 @@ export function Navbar() {
 
           <div
             className="
-              hidden
+              flex
               items-center
               gap-2
-
-              lg:flex
             "
           >
             <ThemeToggle />
@@ -303,118 +277,294 @@ export function Navbar() {
                   asChild
                   variant="ghost"
                   className="
-                      rounded-full
-                      px-5
-                    "
+                    rounded-full
+                    px-4
+                    text-sm
+                    font-medium
+                  "
                 >
-                  <Link href="/login">Log in</Link>
+                  <Link href="/login">Sign in</Link>
                 </Button>
 
                 <Button
                   asChild
                   className="
-                      rounded-full
-                      border-0
-                      bg-mecho-gradient
-                      px-5
-                      text-white
-                    "
+                    rounded-full
+                    border-0
+                    bg-mecho-gradient
+                    px-5
+                    text-sm
+                    font-semibold
+                    text-white
+                    shadow-[0_10px_28px_rgba(111,44,255,0.20)]
+                    transition-all
+                    duration-300
+
+                    hover:-translate-y-0.5
+                    hover:shadow-[0_14px_34px_rgba(111,44,255,0.28)]
+                  "
                 >
-                  <Link href="/signup">Get started</Link>
+                  <Link href="/signup">Get started for free</Link>
                 </Button>
               </>
             )}
 
             {!loading && user && (
-              <AccountDropdown
-                user={user}
-                fullName={fullName}
-                onLogout={handleLogout}
-              />
-            )}
-          </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Open account menu"
+                    className="
+                      flex
+                      items-center
+                      gap-2
+                      rounded-full
+                      border
+                      border-border/60
+                      bg-background/70
+                      p-1.5
+                      pr-3
+                      transition-colors
 
-          {/* Mobile account */}
+                      hover:bg-muted/40
+                    "
+                  >
+                    <Avatar className="size-8">
+                      <AvatarImage
+                        src={
+                          user.profile_picture_url ?? user.avatar ?? undefined
+                        }
+                        alt={fullName}
+                      />
 
-          <div
-            className="
-              flex
-              items-center
-              gap-2
+                      <AvatarFallback
+                        className="
+                          bg-mecho-gradient
+                          text-xs
+                          font-semibold
+                          text-white
+                        "
+                      >
+                        {initials || <UserRound className="size-4" />}
+                      </AvatarFallback>
+                    </Avatar>
 
-              lg:hidden
-            "
-          >
-            {!loading && user && (
-              <button
-                type="button"
-                onClick={() => setMenuOpen(true)}
-                aria-label="Open account menu"
-              >
-                <UserAvatar
-                  firstName={user.first_name}
-                  lastName={user.last_name}
-                  profilePictureUrl={user.profile_picture_url}
-                  legacyAvatar={user.avatar}
-                  className="size-9"
-                />
-              </button>
-            )}
+                    <span
+                      className="
+                        max-w-[100px]
+                        truncate
+                        text-sm
+                        font-medium
+                      "
+                    >
+                      {user.first_name}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
 
-            {!loading && !user && (
-              <button
-                type="button"
-                onClick={() => setMenuOpen(true)}
-                aria-label="Open menu"
-                className="
-                    flex
-                    size-10
-                    items-center
-                    justify-center
-                    rounded-full
-                    text-muted-foreground
-
-                    hover:bg-muted
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="
+                    w-64
+                    rounded-2xl
+                    p-2
                   "
-              >
-                <Menu className="size-5" />
-              </button>
+                >
+                  <DropdownMenuLabel>
+                    <p className="font-semibold">{fullName}</p>
+
+                    <p
+                      className="
+                        mt-0.5
+                        truncate
+                        text-xs
+                        font-normal
+                        text-muted-foreground
+                      "
+                    >
+                      {user.email}
+                    </p>
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">
+                      <LayoutDashboard className="mr-2 size-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings">
+                      <Settings className="mr-2 size-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void handleLogout();
+                    }}
+                  >
+                    <LogOut className="mr-2 size-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </nav>
       </header>
 
-      {/* Mobile bottom nav */}
+      {/* =====================================================
+          MOBILE TOP BRAND BAR
 
-      <nav
-        aria-label="Mobile landing navigation"
+          Navigation does NOT live here.
+          This only gives the landing page a light app header.
+      ====================================================== */}
+
+      <header
         className="
           fixed
           inset-x-0
-          bottom-0
+          top-0
           z-50
-          border-t
-          border-border/60
-          bg-background/92
-          px-1.5
-          pt-1.5
-          backdrop-blur-2xl
+          px-3
+          pt-3
 
           lg:hidden
         "
-        style={{
-          paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))",
-        }}
+      >
+        <div
+          className="
+            mx-auto
+            flex
+            h-14
+            items-center
+            justify-between
+            overflow-visible
+            rounded-[1.2rem]
+            border
+            border-border/60
+            bg-background/78
+            px-3.5
+            shadow-[0_6px_28px_rgba(38,17,58,0.045)]
+            backdrop-blur-2xl
+          "
+        >
+          <Link
+            href="#home"
+            className="
+    flex
+    min-w-0
+    items-center
+    gap-2.5
+  "
+            aria-label="Mecho AI home"
+          >
+            <div
+              className="
+      relative
+      size-9
+      shrink-0
+    "
+            >
+              <Image
+                src="/logo.svg"
+                alt="Mecho AI"
+                fill
+                priority
+                className="object-contain"
+                sizes="36px"
+              />
+            </div>
+
+            <span
+              className="
+      whitespace-nowrap
+      text-[17px]
+      font-semibold
+      tracking-[-0.04em]
+    "
+            >
+              Mecho AI
+            </span>
+          </Link>
+
+          <div
+            className="
+              flex
+              items-center
+              gap-1
+            "
+          >
+            <ThemeToggle />
+
+            {!loading && user && (
+              <Link href="/dashboard" aria-label="Open dashboard">
+                <Avatar className="size-8">
+                  <AvatarImage
+                    src={user.profile_picture_url ?? user.avatar ?? undefined}
+                    alt={fullName}
+                  />
+
+                  <AvatarFallback
+                    className="
+                      bg-mecho-gradient
+                      text-[10px]
+                      font-semibold
+                      text-white
+                    "
+                  >
+                    {initials || "M"}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* =====================================================
+          MOBILE APP-STYLE BOTTOM NAVIGATION
+      ====================================================== */}
+
+      <nav
+        aria-label="Mobile navigation"
+        className="
+          fixed
+          inset-x-3
+          bottom-3
+          z-[60]
+
+          lg:hidden
+        "
       >
         <div
           className="
             mx-auto
             grid
-            max-w-xl
+            max-w-md
             grid-cols-5
+            items-center
+            rounded-[1.55rem]
+            border
+            border-border/70
+            bg-background/88
+            px-1.5
+            py-1.5
+            shadow-[0_18px_60px_rgba(38,17,58,0.14)]
+            backdrop-blur-2xl
+
+            supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom))]
           "
         >
-          {mobileNavItems.map((item) => {
+          {mobileLinks.map((item) => {
             const Icon = item.icon;
 
             const active = activeSection === item.id;
@@ -424,525 +574,108 @@ export function Navbar() {
                 key={item.id}
                 href={item.href}
                 className={`
+                    relative
                     flex
-                    min-h-[58px]
+                    min-h-[54px]
                     flex-col
                     items-center
                     justify-center
                     gap-1
-                    rounded-xl
+                    rounded-[1.05rem]
+                    px-1
+                    text-[10px]
+                    font-medium
+                    transition-all
+                    duration-300
 
                     ${active ? "text-mecho-purple" : "text-muted-foreground"}
                   `}
               >
-                <Icon className="size-5" />
+                {active && (
+                  <span
+                    aria-hidden="true"
+                    className="
+                        absolute
+                        inset-1
+                        -z-10
+                        rounded-[0.9rem]
+                        bg-mecho-purple-soft
 
-                <span
-                  className="
-                      text-[10px]
-                      font-medium
-                    "
-                >
-                  {item.label}
-                </span>
+                        dark:bg-mecho-purple/10
+                      "
+                  />
+                )}
+
+                <Icon
+                  className={`
+                      size-[19px]
+                      transition-transform
+                      duration-300
+
+                      ${active ? "scale-105" : ""}
+                    `}
+                />
+
+                <span>{item.label}</span>
               </Link>
             );
           })}
 
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className="
-              flex
-              min-h-[58px]
-              flex-col
-              items-center
-              justify-center
-              gap-1
-              rounded-xl
-              text-muted-foreground
-            "
-          >
-            <Menu className="size-5" />
+          {/* Dynamic final action */}
 
-            <span
+          {!loading && user ? (
+            <Link
+              href="/dashboard"
               className="
+                relative
+                flex
+                min-h-[54px]
+                flex-col
+                items-center
+                justify-center
+                gap-1
+                rounded-[1.05rem]
+                px-1
                 text-[10px]
                 font-medium
+                text-muted-foreground
+                transition-colors
+
+                hover:text-mecho-purple
               "
             >
-              Menu
-            </span>
-          </button>
+              <LayoutDashboard className="size-[19px]" />
+
+              <span>Dashboard</span>
+            </Link>
+          ) : (
+            <Link
+              href="/signup"
+              className="
+                relative
+                flex
+                min-h-[54px]
+                flex-col
+                items-center
+                justify-center
+                gap-1
+                overflow-hidden
+                rounded-[1.05rem]
+                bg-mecho-gradient
+                px-1
+                text-[10px]
+                font-semibold
+                text-white
+                shadow-[0_7px_20px_rgba(111,44,255,0.22)]
+              "
+            >
+              <Sparkles className="size-[18px]" />
+
+              <span>Start free</span>
+            </Link>
+          )}
         </div>
       </nav>
-
-      <LandingMobileMenu
-        open={menuOpen}
-        onOpenChange={setMenuOpen}
-        user={user}
-        loading={loading}
-        fullName={fullName}
-        onLogout={handleLogout}
-      />
     </>
-  );
-}
-
-type AccountDropdownProps = {
-  user: NonNullable<ReturnType<typeof useAuth>["user"]>;
-
-  fullName: string;
-
-  onLogout: () => Promise<void>;
-};
-
-function AccountDropdown({ user, fullName, onLogout }: AccountDropdownProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="Open account menu"
-          className="
-            group
-            flex
-            items-center
-            gap-2.5
-            rounded-full
-            border
-            border-border/70
-            bg-background/70
-            p-1.5
-            pr-3
-            shadow-[0_6px_20px_rgba(47,1,117,0.06)]
-            transition-all
-            duration-300
-
-            hover:border-mecho-purple/30
-          "
-        >
-          <UserAvatar
-            firstName={user.first_name}
-            lastName={user.last_name}
-            profilePictureUrl={user.profile_picture_url}
-            legacyAvatar={user.avatar}
-            className="size-8"
-          />
-
-          <span
-            className="
-              max-w-[110px]
-              truncate
-              text-sm
-              font-medium
-            "
-          >
-            {user.first_name}
-          </span>
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align="end"
-        sideOffset={10}
-        className="
-          w-72
-          rounded-2xl
-          border-border/70
-          bg-background/95
-          p-2
-          shadow-[0_20px_60px_rgba(38,17,58,0.14)]
-          backdrop-blur-xl
-        "
-      >
-        <DropdownMenuLabel
-          className="
-            p-3
-            font-normal
-          "
-        >
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-            "
-          >
-            <UserAvatar
-              firstName={user.first_name}
-              lastName={user.last_name}
-              profilePictureUrl={user.profile_picture_url}
-              legacyAvatar={user.avatar}
-              className="size-11"
-            />
-
-            <div className="min-w-0">
-              <p
-                className="
-                  truncate
-                  text-sm
-                  font-semibold
-                "
-              >
-                {fullName}
-              </p>
-
-              <p
-                className="
-                  mt-0.5
-                  truncate
-                  text-xs
-                  text-muted-foreground
-                "
-              >
-                {user.email}
-              </p>
-            </div>
-          </div>
-        </DropdownMenuLabel>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          asChild
-          className="
-            rounded-xl
-            p-0
-          "
-        >
-          <Link
-            href="/dashboard"
-            className="
-              cursor-pointer
-              rounded-xl
-              px-3
-              py-2.5
-            "
-          >
-            <LayoutDashboard className="mr-2 size-4" />
-            Dashboard
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          asChild
-          className="
-            rounded-xl
-            p-0
-          "
-        >
-          <Link
-            href="/dashboard/settings"
-            className="
-              cursor-pointer
-              rounded-xl
-              px-3
-              py-2.5
-            "
-          >
-            <Settings className="mr-2 size-4" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={() => {
-            void onLogout();
-          }}
-          className="
-            cursor-pointer
-            rounded-xl
-            px-3
-            py-2.5
-            text-muted-foreground
-          "
-        >
-          <LogOut className="mr-2 size-4" />
-          Log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-type LandingMobileMenuProps = {
-  open: boolean;
-
-  onOpenChange: (open: boolean) => void;
-
-  user: ReturnType<typeof useAuth>["user"] | null;
-
-  loading: boolean;
-
-  fullName: string;
-
-  onLogout: () => Promise<void>;
-};
-
-function LandingMobileMenu({
-  open,
-  onOpenChange,
-  user,
-  loading,
-  fullName,
-  onLogout,
-}: LandingMobileMenuProps) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="
-          rounded-t-[2rem]
-          border-t
-          border-border/60
-          px-4
-          pb-[calc(1.5rem+env(safe-area-inset-bottom))]
-          pt-3
-        "
-      >
-        <div
-          className="
-            mx-auto
-            mb-5
-            h-1
-            w-10
-            rounded-full
-            bg-border
-          "
-        />
-
-        <SheetHeader className="sr-only">
-          <SheetTitle>Mecho menu</SheetTitle>
-
-          <SheetDescription>Navigation and account options.</SheetDescription>
-        </SheetHeader>
-
-        <div
-          className="
-            mx-auto
-            w-full
-            max-w-lg
-          "
-        >
-          {!loading && user && (
-            <div
-              className="
-                  flex
-                  items-center
-                  gap-3
-                  rounded-2xl
-                  bg-muted/35
-                  p-3
-                "
-            >
-              <UserAvatar
-                firstName={user.first_name}
-                lastName={user.last_name}
-                profilePictureUrl={user.profile_picture_url}
-                legacyAvatar={user.avatar}
-                className="size-12"
-              />
-
-              <div className="min-w-0">
-                <p
-                  className="
-                      truncate
-                      text-sm
-                      font-semibold
-                    "
-                >
-                  {fullName}
-                </p>
-
-                <p
-                  className="
-                      mt-0.5
-                      truncate
-                      text-xs
-                      text-muted-foreground
-                    "
-                >
-                  {user.email}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div
-            className="
-              mt-5
-              grid
-              gap-1
-            "
-          >
-            <Link
-              href="#about"
-              onClick={() => onOpenChange(false)}
-              className="
-                rounded-xl
-                px-3
-                py-3
-                text-sm
-                font-medium
-              "
-            >
-              About
-            </Link>
-
-            <Link
-              href="#team"
-              onClick={() => onOpenChange(false)}
-              className="
-                rounded-xl
-                px-3
-                py-3
-                text-sm
-                font-medium
-              "
-            >
-              Team
-            </Link>
-
-            {user && (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                    rounded-xl
-                    px-3
-                    py-3
-                    text-sm
-                    font-medium
-                  "
-                >
-                  <LayoutDashboard className="size-4" />
-                  Dashboard
-                </Link>
-
-                <Link
-                  href="/dashboard/settings"
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                    rounded-xl
-                    px-3
-                    py-3
-                    text-sm
-                    font-medium
-                  "
-                >
-                  <Settings className="size-4" />
-                  Settings
-                </Link>
-              </>
-            )}
-          </div>
-
-          <div
-            className="
-              my-4
-              h-px
-              bg-border/60
-            "
-          />
-
-          <div
-            className="
-              flex
-              items-center
-              justify-between
-              rounded-xl
-              px-3
-              py-2.5
-            "
-          >
-            <span
-              className="
-                text-sm
-                font-medium
-              "
-            >
-              Appearance
-            </span>
-
-            <ThemeToggle />
-          </div>
-
-          {!loading && !user && (
-            <div
-              className="
-                  mt-4
-                  grid
-                  gap-3
-                "
-            >
-              <Button
-                asChild
-                variant="outline"
-                className="
-                    h-12
-                    rounded-full
-                  "
-              >
-                <Link href="/login">
-                  <LogIn className="mr-2 size-4" />
-                  Log in
-                </Link>
-              </Button>
-
-              <Button
-                asChild
-                className="
-                    h-12
-                    rounded-full
-                    border-0
-                    bg-mecho-gradient
-                    text-white
-                  "
-              >
-                <Link href="/signup">
-                  <UserPlus className="mr-2 size-4" />
-                  Get started
-                </Link>
-              </Button>
-            </div>
-          )}
-
-          {user && (
-            <button
-              type="button"
-              onClick={() => {
-                void onLogout();
-              }}
-              className="
-                mt-3
-                flex
-                h-12
-                w-full
-                items-center
-                gap-3
-                rounded-xl
-                px-3
-                text-sm
-                font-medium
-                text-muted-foreground
-
-                hover:bg-muted/50
-              "
-            >
-              <LogOut className="size-4" />
-              Log out
-            </button>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

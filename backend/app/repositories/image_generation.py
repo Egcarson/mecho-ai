@@ -1,7 +1,10 @@
 from uuid import UUID
 
+from app.models.enums import ProjectWorkflow
+from app.models.generation import Generation
 from app.models.image_generation import ImageGeneration
-from sqlalchemy import select
+from app.models.project import Project
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -101,3 +104,37 @@ class ImageGenerationRepository:
         return list(
             result.scalars().all()
         )
+
+    async def count_social_attempts_for_user(
+        self,
+        user_uid: UUID,
+    ) -> int:
+
+        statement = (
+            select(
+                func.count(
+                    ImageGeneration.uid
+                )
+            )
+            .join(
+                Generation,
+                ImageGeneration.generation_uid
+                == Generation.uid,
+            )
+            .join(
+                Project,
+                Generation.project_uid
+                == Project.uid,
+            )
+            .where(
+                Project.user_uid == user_uid,
+                Project.workflow
+                == ProjectWorkflow.SOCIAL,
+            )
+        )
+
+        result = await self.session.execute(
+            statement
+        )
+
+        return result.scalar_one()

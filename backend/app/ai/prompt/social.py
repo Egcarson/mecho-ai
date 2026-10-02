@@ -1,3 +1,92 @@
+from app.models.enums import ContentLength
+
+SOCIAL_LENGTH_GUIDANCE: dict[
+    ContentLength,
+    str,
+] = {
+    ContentLength.SHORT: """
+Create concise, high-impact social content.
+
+Aim for roughly 40–90 words where appropriate.
+
+Prioritize:
+- a strong hook;
+- one clear idea or benefit;
+- minimal explanation;
+- a direct CTA.
+
+Do not over-explain.
+This length is best for quick promotional posts,
+announcements, punchy messages, and fast-scrolling platforms.
+""",
+
+    ContentLength.MEDIUM: """
+Create moderately developed social content.
+
+Aim for roughly 100–220 words where appropriate.
+
+Include enough context to make the message persuasive while
+remaining easy to consume on social media.
+
+You may include:
+- a strong hook;
+- brief context;
+- benefits or value;
+- light storytelling;
+- a clear CTA.
+
+Keep the message focused and avoid unnecessary repetition.
+""",
+
+    ContentLength.LONG: """
+Create detailed social content.
+
+Aim for roughly 250–450 words where appropriate.
+
+Develop the message through useful explanation, persuasion,
+storytelling, examples, emotional context, or audience insight.
+
+The content should still feel natural for social media.
+
+Use structure and paragraph breaks to maintain readability.
+
+Do not increase length through repetition or filler.
+""",
+
+    ContentLength.EXTENDED: """
+Create an extended, story-led social piece.
+
+Aim for roughly 500–800 words where appropriate.
+
+This mode is suitable for:
+- storytelling;
+- founder or customer stories;
+- educational posts;
+- deeper persuasive content;
+- thought-leadership style posts;
+- narrative promotional content;
+- emotionally developed messaging.
+
+Build a clear progression:
+
+hook
+→ context or story
+→ tension/problem/insight
+→ value or transformation
+→ takeaway
+→ CTA
+
+The content should feel intentionally developed rather than
+artificially stretched.
+
+Use natural paragraphs and strong narrative flow.
+
+Do not repeat ideas merely to increase word count.
+""",
+}
+
+
+
 SOCIAL_PROMPT = """
 You are Mecho AI's social marketing intelligence engine.
 

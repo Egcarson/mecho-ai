@@ -7,96 +7,85 @@ import {
   useEffect,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
 
+import { authFetch } from "@/lib/auth-fetch";
 import type { AuthUser } from "@/types/auth";
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-
   const [user, setUser] = useState<AuthUser | null>(null);
-
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  /**
+   * Resolve the current authenticated user.
+   *
+   * Token refreshing is intentionally delegated to authFetch so the
+   * application has one refresh pipeline and one refresh-token lock.
+   */
+  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
+    setLoading(true);
+
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await authFetch("/api/auth/me", {
         method: "GET",
-        credentials: "include",
         cache: "no-store",
       });
 
-      if (response.ok) {
-        const data = (await response.json()) as AuthUser;
+      if (!response.ok) {
+        setUser(null);
 
-        setUser(data);
-        return;
+        return null;
       }
 
-      if (response.status === 401) {
-        const refreshResponse = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "include",
-        });
+      const data = (await response.json()) as AuthUser;
 
-        if (!refreshResponse.ok) {
-          setUser(null);
-          return;
-        }
+      setUser(data);
 
-        const meResponse = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!meResponse.ok) {
-          setUser(null);
-          return;
-        }
-
-        const data = (await meResponse.json()) as AuthUser;
-
-        setUser(data);
-        return;
-      }
+      return data;
+    } catch (error) {
+      console.error("AUTH USER RESTORE ERROR:", error);
 
       setUser(null);
-    } catch {
-      setUser(null);
+
+      return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
+  /**
+   * Restore the browser session once when the application mounts.
+   */
   useEffect(() => {
     void refreshUser();
   }, [refreshUser]);
 
-  async function logout() {
+  /**
+   * Explicit logout.
+   *
+   * The component initiating logout remains responsible for navigation.
+   */
+  const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
+        cache: "no-store",
       });
+    } catch (error) {
+      console.error("LOGOUT ERROR:", error);
     } finally {
       setUser(null);
-
-      if (pathname !== "/login") {
-        router.replace("/login");
-      }
     }
-  }
+  }, []);
 
   return (
     <AuthContext.Provider

@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { motion } from "motion/react";
 
 const team = [
   {
@@ -39,72 +38,7 @@ const team = [
 ];
 
 export function TeamSection() {
-  const carouselRef = useRef<HTMLDivElement>(null);
-
   const [activeMember, setActiveMember] = useState<number | null>(null);
-  const [isInteracting, setIsInteracting] = useState(false);
-
-  const scrollByCard = (direction: "next" | "previous") => {
-    const container = carouselRef.current;
-
-    if (!container) return;
-
-    const firstCard = container.firstElementChild as HTMLElement | null;
-
-    if (!firstCard) return;
-
-    const gap = 24;
-
-    const amount = firstCard.offsetWidth + gap;
-
-    const reachedEnd =
-      container.scrollLeft + container.clientWidth >=
-      container.scrollWidth - amount * 0.5;
-
-    const reachedStart = container.scrollLeft <= amount * 0.5;
-
-    if (direction === "next") {
-      if (reachedEnd) {
-        container.scrollTo({
-          left: 0,
-          behavior: "smooth",
-        });
-
-        return;
-      }
-
-      container.scrollBy({
-        left: amount,
-        behavior: "smooth",
-      });
-    }
-
-    if (direction === "previous") {
-      if (reachedStart) {
-        container.scrollTo({
-          left: container.scrollWidth,
-          behavior: "smooth",
-        });
-
-        return;
-      }
-
-      container.scrollBy({
-        left: -amount,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (isInteracting) return;
-
-    const interval = window.setInterval(() => {
-      scrollByCard("next");
-    }, 4200);
-
-    return () => window.clearInterval(interval);
-  }, [isInteracting]);
 
   return (
     <section
@@ -115,48 +49,113 @@ export function TeamSection() {
         overflow-hidden
         bg-background
         py-24
+
         sm:py-28
+
         lg:scroll-mt-28
         lg:py-32
       "
     >
-      {/* Ambient background */}
-      <div
-        aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute -left-32 top-[12%]
-          h-80 w-80
-          rounded-full
-          bg-mecho-purple/8
-          blur-[130px]
-        "
-      />
+      {/* Ambient brand canvas */}
 
       <div
         aria-hidden="true"
         className="
           pointer-events-none
-          absolute -right-32 bottom-[8%]
-          h-80 w-80
-          rounded-full
-          bg-mecho-orange/8
-          blur-[130px]
+          absolute
+          inset-0
+          overflow-hidden
         "
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div
+      >
+        <motion.div
+          animate={{
+            x: ["-3%", "4%", "-3%"],
+            y: ["0%", "3%", "0%"],
+          }}
+          transition={{
+            duration: 26,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
           className="
-            flex flex-col
-            gap-8
-            lg:flex-row
-            lg:items-end
-            lg:justify-between
+            absolute
+            -left-40
+            top-[8%]
+            h-[380px]
+            w-[380px]
+            rounded-full
+            bg-mecho-purple/8
+            blur-[150px]
+          "
+        />
+
+        <motion.div
+          animate={{
+            x: ["3%", "-3%", "3%"],
+            y: ["2%", "-2%", "2%"],
+          }}
+          transition={{
+            duration: 30,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="
+            absolute
+            -right-32
+            bottom-[5%]
+            h-[360px]
+            w-[360px]
+            rounded-full
+            bg-mecho-orange/8
+            blur-[150px]
+          "
+        />
+
+        <span
+          className="
+            absolute
+            right-[-2rem]
+            top-[11%]
+            select-none
+            text-[6rem]
+            font-semibold
+            leading-none
+            tracking-[-0.09em]
+            text-foreground/[0.018]
+
+            sm:text-[9rem]
+
+            lg:text-[12rem]
           "
         >
-          <div className="max-w-3xl">
+          PEOPLE
+        </span>
+      </div>
+
+      <div
+        className="
+          relative
+          mx-auto
+          max-w-7xl
+          px-4
+
+          sm:px-6
+
+          lg:px-8
+        "
+      >
+        {/* Header */}
+
+        <div
+          className="
+            grid
+            gap-8
+
+            lg:grid-cols-[0.95fr_1.05fr]
+            lg:items-end
+          "
+        >
+          <div>
             <p
               className="
                 text-xs
@@ -172,457 +171,78 @@ export function TeamSection() {
             <h2
               className="
                 mt-5
+                max-w-3xl
                 text-4xl
                 font-semibold
-                leading-[1.05]
-                tracking-[-0.045em]
-                text-foreground
+                leading-[0.98]
+                tracking-[-0.06em]
+
                 sm:text-5xl
-                lg:text-[3.5rem]
+
+                lg:text-[4.2rem]
               "
             >
-              Built by people
+              Different minds.
               <br />
-              who care how ideas travel.
+              <span className="text-mecho-gradient">One direction.</span>
             </h2>
-
-            <p
-              className="
-                mt-6
-                max-w-2xl
-                text-base
-                leading-8
-                text-muted-foreground
-                sm:text-lg
-              "
-            >
-              A multidisciplinary team bringing together engineering, artificial
-              intelligence, product thinking, design and communication to shape
-              how Mecho works.
-            </p>
           </div>
 
-          {/* Desktop carousel controls */}
-          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-            <button
-              type="button"
-              onClick={() => scrollByCard("previous")}
-              aria-label="Previous team members"
-              className="
-                flex size-11
-                items-center justify-center
-                rounded-full
-                border border-border
-                bg-background
-                text-foreground
-                transition-all
-                duration-300
-                hover:-translate-y-0.5
-                hover:border-mecho-purple/30
-                hover:bg-mecho-purple-soft
-                hover:text-mecho-purple
-              "
-            >
-              <ArrowLeft className="size-[18px]" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => scrollByCard("next")}
-              aria-label="Next team members"
-              className="
-                flex size-11
-                items-center justify-center
-                rounded-full
-                border border-border
-                bg-background
-                text-foreground
-                transition-all
-                duration-300
-                hover:-translate-y-0.5
-                hover:border-mecho-purple/30
-                hover:bg-mecho-purple-soft
-                hover:text-mecho-purple
-              "
-            >
-              <ArrowRight className="size-[18px]" />
-            </button>
-          </div>
-        </div>
-
-        {/* Team carousel */}
-        <div className="relative mt-16 sm:mt-20">
-          {/* Left edge fade */}
-          <div
-            aria-hidden="true"
+          <p
             className="
-              pointer-events-none
-              absolute inset-y-0 left-0
-              z-20
-              hidden w-10
-              bg-gradient-to-r
-              from-background
-              to-transparent
-              lg:block
-            "
-          />
+              max-w-xl
+              text-base
+              leading-8
+              text-muted-foreground
 
-          {/* Right edge fade */}
-          <div
-            aria-hidden="true"
-            className="
-              pointer-events-none
-              absolute inset-y-0 right-0
-              z-20
-              hidden w-10
-              bg-gradient-to-l
-              from-background
-              to-transparent
-              lg:block
-            "
-          />
+              sm:text-lg
 
-          <div
-            ref={carouselRef}
-            onMouseEnter={() => setIsInteracting(true)}
-            onMouseLeave={() => {
-              setIsInteracting(false);
-              setActiveMember(null);
-            }}
-            onTouchStart={() => setIsInteracting(true)}
-            onTouchEnd={() => {
-              window.setTimeout(() => {
-                setIsInteracting(false);
-              }, 1800);
-            }}
-            className="
-              flex
-              snap-x
-              snap-mandatory
-              gap-6
-              overflow-x-auto
-              scroll-smooth
-              pb-4
-
-              [scrollbar-width:none]
-              [&::-webkit-scrollbar]:hidden
+              lg:ml-auto
             "
           >
-            {team.map((member, index) => {
-              const isActive = activeMember === index;
-
-              return (
-                <motion.article
-                  key={`${member.name}-${index}`}
-                  initial={{
-                    opacity: 0,
-                    y: 24,
-                  }}
-                  whileInView={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  viewport={{
-                    once: true,
-                    amount: 0.2,
-                  }}
-                  transition={{
-                    duration: 0.65,
-                    delay: Math.min(index * 0.05, 0.2),
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  onClick={() =>
-                    setActiveMember((current) =>
-                      current === index ? null : index,
-                    )
-                  }
-                  className="
-                    group
-                    relative
-                    aspect-[4/5]
-                    min-w-[86%]
-                    cursor-pointer
-                    snap-start
-                    overflow-hidden
-                    rounded-[1.8rem]
-                    border border-border/70
-                    bg-muted
-
-                    sm:min-w-[calc(50%-12px)]
-
-                    lg:min-w-[calc(33.333%-16px)]
-                  "
-                >
-                  {/* Portrait */}
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    fill
-                    className="
-                      object-cover
-                      transition-transform
-                      duration-[900ms]
-                      ease-[cubic-bezier(0.22,1,0.36,1)]
-                      group-hover:scale-[1.045]
-                    "
-                    sizes="
-                      (max-width: 640px) 86vw,
-                      (max-width: 1024px) 50vw,
-                      33vw
-                    "
-                  />
-
-                  {/* Permanent cinematic bottom gradient */}
-                  <div
-                    aria-hidden="true"
-                    className="
-                      pointer-events-none
-                      absolute inset-0
-                      bg-gradient-to-t
-                      from-black/35
-                      via-black/0
-                      to-transparent
-                    "
-                  />
-
-                  {/* Premium hover tint */}
-                  <div
-                    aria-hidden="true"
-                    className={`
-                      pointer-events-none
-                      absolute inset-0
-                      bg-gradient-to-t
-                      from-[#100817]/95
-                      via-[#100817]/55
-                      to-[#100817]/5
-                      transition-opacity
-                      duration-500
-
-                      ${
-                        isActive
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100"
-                      }
-                    `}
-                  />
-
-                  {/* Purple/orange atmosphere */}
-                  <div
-                    aria-hidden="true"
-                    className={`
-                      pointer-events-none
-                      absolute -bottom-20 -left-16
-                      size-52
-                      rounded-full
-                      bg-mecho-purple/30
-                      blur-[70px]
-                      transition-opacity
-                      duration-500
-
-                      ${
-                        isActive
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100"
-                      }
-                    `}
-                  />
-
-                  <div
-                    aria-hidden="true"
-                    className={`
-                      pointer-events-none
-                      absolute -right-20 bottom-10
-                      size-44
-                      rounded-full
-                      bg-mecho-orange/15
-                      blur-[70px]
-                      transition-opacity
-                      duration-500
-
-                      ${
-                        isActive
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100"
-                      }
-                    `}
-                  />
-
-                  {/* Team content */}
-                  <div
-                    className={`
-                      absolute
-                      inset-x-0 bottom-0
-                      z-10
-                      p-6
-                      text-white
-                      transition-all
-                      duration-500
-                      ease-[cubic-bezier(0.22,1,0.36,1)]
-                      sm:p-7
-
-                      ${
-                        isActive
-                          ? "translate-y-0 opacity-100"
-                          : "translate-y-5 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
-                      }
-                    `}
-                  >
-                    {/* Role */}
-                    <div className="mb-4 flex items-center gap-2">
-                      <span className="size-1.5 rounded-full bg-mecho-orange" />
-
-                      <p
-                        className="
-                          text-[10px]
-                          font-semibold
-                          uppercase
-                          tracking-[0.17em]
-                          text-white/65
-                        "
-                      >
-                        {member.role}
-                      </p>
-                    </div>
-
-                    {/* Name */}
-                    <h3
-                      className="
-                        text-2xl
-                        font-semibold
-                        tracking-[-0.04em]
-                        text-white
-                        sm:text-[1.7rem]
-                      "
-                    >
-                      {member.name}
-                    </h3>
-
-                    {/* Divider */}
-                    <div
-                      className="
-                        my-4
-                        h-px
-                        w-full
-                        bg-gradient-to-r
-                        from-white/25
-                        to-transparent
-                      "
-                    />
-
-                    {/* Bio */}
-                    <p
-                      className="
-                        max-w-sm
-                        text-sm
-                        leading-6
-                        text-white/65
-                        sm:text-[15px]
-                        sm:leading-7
-                      "
-                    >
-                      {member.bio}
-                    </p>
-
-                    {/* Signature */}
-                    <div className="mt-6 flex items-center gap-3">
-                      <div className="h-px w-7 bg-mecho-orange" />
-
-                      <span
-                        className="
-                          text-[10px]
-                          font-medium
-                          uppercase
-                          tracking-[0.18em]
-                          text-white/45
-                        "
-                      >
-                        Mecho AI
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Subtle instruction on touch devices */}
-                  <div
-                    className={`
-                      absolute
-                      bottom-5 right-5
-                      z-10
-                      rounded-full
-                      border border-white/15
-                      bg-black/20
-                      px-3 py-1.5
-                      text-[9px]
-                      font-medium
-                      uppercase
-                      tracking-[0.14em]
-                      text-white/65
-                      backdrop-blur-md
-                      transition-opacity
-                      duration-300
-                      sm:hidden
-
-                      ${isActive ? "opacity-0" : "opacity-100"}
-                    `}
-                  >
-                    Tap to meet
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
-
-          {/* Mobile controls */}
-          <div className="mt-6 flex items-center justify-between sm:hidden">
-            <p
-              className="
-                text-xs
-                font-medium
-                text-muted-foreground
-              "
-            >
-              Swipe to meet the team
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => scrollByCard("previous")}
-                aria-label="Previous team member"
-                className="
-                  flex size-10
-                  items-center justify-center
-                  rounded-full
-                  border border-border
-                  bg-background
-                "
-              >
-                <ArrowLeft className="size-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => scrollByCard("next")}
-                aria-label="Next team member"
-                className="
-                  flex size-10
-                  items-center justify-center
-                  rounded-full
-                  border border-border
-                  bg-background
-                "
-              >
-                <ArrowRight className="size-4" />
-              </button>
-            </div>
-          </div>
+            Engineering, product, intelligence, design and brand — working
+            together to shape how Mecho feels.
+          </p>
         </div>
 
-        {/* Bottom message */}
+        {/* Team grid */}
+
+        <div
+          className="
+            mt-14
+            grid
+            grid-cols-1
+            gap-5
+
+            sm:grid-cols-2
+
+            lg:mt-16
+            lg:grid-cols-5
+            lg:gap-4
+          "
+        >
+          {team.map((member, index) => (
+            <TeamCard
+              key={`${member.name}-${index}`}
+              member={member}
+              active={activeMember === index}
+              onToggle={() =>
+                setActiveMember((current) => (current === index ? null : index))
+              }
+              index={index}
+            />
+          ))}
+        </div>
+
+        {/* Closing line */}
+
         <div
           className="
             mt-12
-            flex items-center
-            gap-6
+            flex
+            items-center
+            gap-5
+
             sm:mt-14
           "
         >
@@ -632,6 +252,7 @@ export function TeamSection() {
               text-sm
               font-medium
               text-muted-foreground
+
               sm:text-base
             "
           >
@@ -647,11 +268,340 @@ export function TeamSection() {
               from-mecho-purple/40
               via-mecho-orange/30
               to-transparent
+
               sm:block
             "
           />
         </div>
       </div>
     </section>
+  );
+}
+
+type TeamMember = {
+  name: string;
+  role: string;
+  bio: string;
+  image: string;
+};
+
+function TeamCard({
+  member,
+  active,
+  onToggle,
+  index,
+}: {
+  member: TeamMember;
+  active: boolean;
+  onToggle: () => void;
+  index: number;
+}) {
+  return (
+    <motion.article
+      initial={{
+        opacity: 0,
+        y: 16,
+      }}
+      whileInView={{
+        opacity: 1,
+        y: 0,
+      }}
+      viewport={{
+        once: true,
+        amount: 0.2,
+      }}
+      transition={{
+        duration: 0.65,
+        delay: Math.min(index * 0.04, 0.14),
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      onClick={onToggle}
+      className="
+        group
+        relative
+        aspect-[4/5]
+        cursor-pointer
+        overflow-hidden
+        rounded-[1.6rem]
+        border
+        border-border/60
+        bg-muted
+      "
+    >
+      {/* Portrait */}
+
+      <Image
+        src={member.image}
+        alt={member.name}
+        fill
+        className="
+          object-cover
+          transition-transform
+          duration-[1000ms]
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+
+          group-hover:scale-[1.035]
+        "
+        sizes="
+          (max-width: 640px) 100vw,
+          (max-width: 1024px) 50vw,
+          20vw
+        "
+      />
+
+      {/* Permanent light shading */}
+
+      <div
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          bg-gradient-to-t
+          from-black/25
+          via-transparent
+          to-transparent
+        "
+      />
+
+      {/* Overlay */}
+
+      <div
+        aria-hidden="true"
+        className={`
+          pointer-events-none
+          absolute
+          inset-0
+          bg-gradient-to-t
+          from-[#0b0610]/95
+          via-[#0b0610]/72
+          to-[#0b0610]/20
+          transition-opacity
+          duration-500
+          ease-out
+
+          ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
+      />
+
+      {/* Subtle Mecho glow inside overlay */}
+
+      <div
+        aria-hidden="true"
+        className={`
+          pointer-events-none
+          absolute
+          -bottom-16
+          -left-16
+          size-48
+          rounded-full
+          bg-mecho-purple/25
+          blur-[75px]
+          transition-opacity
+          duration-500
+
+          ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
+      />
+
+      <div
+        aria-hidden="true"
+        className={`
+          pointer-events-none
+          absolute
+          -right-16
+          bottom-8
+          size-40
+          rounded-full
+          bg-mecho-orange/15
+          blur-[70px]
+          transition-opacity
+          duration-500
+
+          ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+        `}
+      />
+
+      {/* Minimal always-visible label */}
+
+      <div
+        className={`
+          absolute
+          inset-x-0
+          bottom-0
+          z-10
+          p-5
+          transition-all
+          duration-500
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+
+          ${active ? "opacity-0" : "opacity-100 group-hover:opacity-0"}
+        `}
+      >
+        <p
+          className="
+            text-xs
+            font-semibold
+            uppercase
+            tracking-[0.15em]
+            text-white/65
+          "
+        >
+          {member.role}
+        </p>
+
+        <h3
+          className="
+            mt-2
+            text-xl
+            font-semibold
+            tracking-[-0.04em]
+            text-white
+          "
+        >
+          {member.name}
+        </h3>
+      </div>
+
+      {/* Hover / tap content */}
+
+      <div
+        className={`
+          absolute
+          inset-x-0
+          bottom-0
+          z-20
+          p-5
+          text-white
+          transition-all
+          duration-500
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+
+          ${
+            active
+              ? "translate-y-0 opacity-100"
+              : "translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+          }
+        `}
+      >
+        <div
+          className="
+            mb-4
+            flex
+            items-center
+            gap-2
+          "
+        >
+          <span
+            className="
+              size-1.5
+              rounded-full
+              bg-mecho-orange
+            "
+          />
+
+          <p
+            className="
+              text-[10px]
+              font-semibold
+              uppercase
+              tracking-[0.16em]
+              text-white/60
+            "
+          >
+            {member.role}
+          </p>
+        </div>
+
+        <h3
+          className="
+            text-2xl
+            font-semibold
+            tracking-[-0.045em]
+          "
+        >
+          {member.name}
+        </h3>
+
+        <div
+          className="
+            my-4
+            h-px
+            bg-gradient-to-r
+            from-white/25
+            to-transparent
+          "
+        />
+
+        <p
+          className="
+            text-sm
+            leading-6
+            text-white/68
+          "
+        >
+          {member.bio}
+        </p>
+
+        <div
+          className="
+            mt-5
+            flex
+            items-center
+            gap-3
+          "
+        >
+          <div
+            className="
+              h-px
+              w-7
+              bg-mecho-orange
+            "
+          />
+
+          <span
+            className="
+              text-[10px]
+              font-medium
+              uppercase
+              tracking-[0.18em]
+              text-white/40
+            "
+          >
+            Mecho AI
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile hint */}
+
+      <div
+        className={`
+          absolute
+          right-4
+          top-4
+          z-20
+          rounded-full
+          border
+          border-white/15
+          bg-black/15
+          px-2.5
+          py-1.5
+          text-[9px]
+          font-medium
+          uppercase
+          tracking-[0.13em]
+          text-white/60
+          backdrop-blur-md
+          transition-opacity
+
+          sm:hidden
+
+          ${active ? "opacity-0" : "opacity-100"}
+        `}
+      >
+        Tap
+      </div>
+    </motion.article>
   );
 }

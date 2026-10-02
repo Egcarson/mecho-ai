@@ -56,3 +56,15 @@ class VoiceResponse(BaseModel):
     description: str | None = None
     languages: list[str]
     default: bool
+
+class VoiceUsageResponse(BaseModel):
+    social_used: int
+    social_limit: int
+
+    social_available: int
+
+    social_enabled: bool
+
+    campaign_enabled: bool
+
+    speech_enabled: bool

@@ -72,6 +72,18 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="size-6 animate-spin text-mecho-purple" />
+      </main>
+    );
+  }
+
+  if (user) {
+    return null;
+  }
+
   function updateCurrentValue(value: string) {
     setError("");
 
