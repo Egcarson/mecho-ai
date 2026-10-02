@@ -1,8 +1,8 @@
-"""first database migration
+"""initial migration
 
-Revision ID: 6fb3fd8a93d4
+Revision ID: af46955e1f34
 Revises: 
-Create Date: 2026-09-16 07:32:19.405221
+Create Date: 2026-10-02 22:54:19.574953
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 import sqlmodel
 
 # revision identifiers, used by Alembic.
-revision: str = '6fb3fd8a93d4'
+revision: str = 'af46955e1f34'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,7 +32,8 @@ def upgrade() -> None:
     sa.Column('phone', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('email', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('password_hash', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('avatar', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('profile_picture_url', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('profile_picture_public_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('provider', sa.Enum('local', 'google', 'github', name='auth_provider'), nullable=False),
     sa.Column('role', sa.Enum('user', 'admin', name='user_role'), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
@@ -53,7 +54,7 @@ def upgrade() -> None:
     sa.Column('used_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('attempts', sa.Integer(), nullable=False),
     sa.Column('max_attempts', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_uid'], ['users.uid'], ),
+    sa.ForeignKeyConstraint(['user_uid'], ['users.uid'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('uid')
     )
     op.create_index(op.f('ix_otp_verification_uid'), 'otp_verification', ['uid'], unique=False)
@@ -66,7 +67,7 @@ def upgrade() -> None:
     sa.Column('name', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
     sa.Column('workflow', sa.Enum('social', 'campaign', 'speech', name='project_workflow'), nullable=False),
     sa.Column('status', sa.Enum('draft', 'completed', 'published', 'archived', name='project_status'), nullable=False),
-    sa.Column('objective', sa.Enum('awareness', 'engagement', 'education', 'conversion', 'lead_generation', 'promotion', 'sales_conversion', 'retention', 'community_building', 'storytelling', 'inspiration', 'event_promotion', 'fundraising', 'product_launch', name='content_objective'), nullable=False),
+    sa.Column('objective', sa.Enum('awareness', 'engagement', 'education', 'conversion', 'lead_generation', 'promotion', 'sales_conversion', 'retention', 'community_building', 'storytelling', 'inspiration', 'event_promotion', 'fundraising', 'product_launch', 'speech', name='content_objective'), nullable=False),
     sa.Column('tone', sa.Enum('professional', 'friendly', 'formal', 'conversational', 'persuasive', 'humorous', 'inspirational', 'educational', name='content_tone'), nullable=False),
     sa.Column('audiences', sa.ARRAY(sa.String()), nullable=False),
     sa.Column('languages', sa.ARRAY(sa.String()), nullable=False),
@@ -102,7 +103,7 @@ def upgrade() -> None:
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['replaced_by_uid'], ['refresh_tokens.uid'], ),
-    sa.ForeignKeyConstraint(['user_uid'], ['users.uid'], ),
+    sa.ForeignKeyConstraint(['user_uid'], ['users.uid'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('uid')
     )
     op.create_index(op.f('ix_refresh_tokens_family_id'), 'refresh_tokens', ['family_id'], unique=False)
@@ -147,7 +148,7 @@ def upgrade() -> None:
     sa.Column('uid', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('project_uid', sa.Uuid(), nullable=False),
+    sa.Column('project_uid', sa.Uuid(), nullable=True),
     sa.Column('user_uid', sa.Uuid(), nullable=False),
     sa.Column('asset_type', sa.Enum('AUDIO', 'IMAGE', 'VIDEO', 'PDF', 'DOCUMENT', 'THUMBNAIL', 'COVER', name='assettype'), nullable=False),
     sa.Column('provider', sa.Enum('CLOUDINARY', 'YARNGPT', 'OPENAI', 'RUNWAY', 'LOCAL', 'USER_UPLOAD', name='assetprovider'), nullable=False),
@@ -173,7 +174,7 @@ def upgrade() -> None:
     sa.Column('prompt', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('system_prompt', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('input_content', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('memories', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('memories', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('output_content', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('model', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -184,34 +185,81 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_generations_project_uid'), 'generations', ['project_uid'], unique=False)
     op.create_index(op.f('ix_generations_uid'), 'generations', ['uid'], unique=False)
+    op.create_table('image_generations',
+    sa.Column('uid', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('generation_uid', sa.Uuid(), nullable=False),
+    sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'processing', 'completed', 'failed', name='image_generation_status'), nullable=False),
+    sa.Column('source_language', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
+    sa.Column('source_variant', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+    sa.Column('design_brief', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('prompt', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('image_url', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.Column('cloudinary_public_id', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
+    sa.Column('error_message', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.ForeignKeyConstraint(['generation_uid'], ['generations.uid'], ),
+    sa.PrimaryKeyConstraint('uid')
+    )
+    op.create_index(op.f('ix_image_generations_generation_uid'), 'image_generations', ['generation_uid'], unique=False)
+    op.create_index(op.f('ix_image_generations_uid'), 'image_generations', ['uid'], unique=False)
     op.create_table('voice_generations',
     sa.Column('uid', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('generation_uid', sa.Uuid(), nullable=False),
     sa.Column('language', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
+    sa.Column('platform', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
     sa.Column('voice', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
-    sa.Column('audio_url', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'processing', 'completed', 'failed', name='voice_generation_status'), nullable=False),
+    sa.Column('audio_url', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('cloudinary_public_id', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
     sa.Column('response_format', sqlmodel.sql.sqltypes.AutoString(length=10), nullable=False),
     sa.Column('duration_seconds', sa.Float(), nullable=True),
-    sa.Column('platform', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
+    sa.Column('error_message', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.ForeignKeyConstraint(['generation_uid'], ['generations.uid'], ),
     sa.PrimaryKeyConstraint('uid'),
-    sa.UniqueConstraint('generation_uid', 'language', 'voice', 'platform', name='uq_voice_generation_language_voice')
+    sa.UniqueConstraint('generation_uid', 'language', 'platform', 'voice', name='uq_voice_generation_content_voice')
     )
     op.create_index(op.f('ix_voice_generations_generation_uid'), 'voice_generations', ['generation_uid'], unique=False)
     op.create_index(op.f('ix_voice_generations_uid'), 'voice_generations', ['uid'], unique=False)
+    op.create_table('voice_provider_jobs',
+    sa.Column('uid', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('voice_generation_uid', sa.Uuid(), nullable=False),
+    sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
+    sa.Column('chunk_index', sa.Integer(), nullable=False),
+    sa.Column('idempotency_key', sqlmodel.sql.sqltypes.AutoString(length=100), nullable=False),
+    sa.Column('provider_job_id', sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
+    sa.Column('status', sa.Enum('pending', 'queued', 'processing', 'completed', 'failed', name='voice_provider_job_status'), nullable=False),
+    sa.Column('error_message', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+    sa.ForeignKeyConstraint(['voice_generation_uid'], ['voice_generations.uid'], ),
+    sa.PrimaryKeyConstraint('uid')
+    )
+    op.create_index(op.f('ix_voice_provider_jobs_idempotency_key'), 'voice_provider_jobs', ['idempotency_key'], unique=True)
+    op.create_index(op.f('ix_voice_provider_jobs_provider_job_id'), 'voice_provider_jobs', ['provider_job_id'], unique=False)
+    op.create_index(op.f('ix_voice_provider_jobs_uid'), 'voice_provider_jobs', ['uid'], unique=False)
+    op.create_index(op.f('ix_voice_provider_jobs_voice_generation_uid'), 'voice_provider_jobs', ['voice_generation_uid'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_voice_provider_jobs_voice_generation_uid'), table_name='voice_provider_jobs')
+    op.drop_index(op.f('ix_voice_provider_jobs_uid'), table_name='voice_provider_jobs')
+    op.drop_index(op.f('ix_voice_provider_jobs_provider_job_id'), table_name='voice_provider_jobs')
+    op.drop_index(op.f('ix_voice_provider_jobs_idempotency_key'), table_name='voice_provider_jobs')
+    op.drop_table('voice_provider_jobs')
     op.drop_index(op.f('ix_voice_generations_uid'), table_name='voice_generations')
     op.drop_index(op.f('ix_voice_generations_generation_uid'), table_name='voice_generations')
     op.drop_table('voice_generations')
+    op.drop_index(op.f('ix_image_generations_uid'), table_name='image_generations')
+    op.drop_index(op.f('ix_image_generations_generation_uid'), table_name='image_generations')
+    op.drop_table('image_generations')
     op.drop_index(op.f('ix_generations_uid'), table_name='generations')
     op.drop_index(op.f('ix_generations_project_uid'), table_name='generations')
     op.drop_table('generations')
