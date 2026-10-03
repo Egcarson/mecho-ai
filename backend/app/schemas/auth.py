@@ -83,3 +83,7 @@ class TokenResponse(BaseModel):
 class SuccessResponse(BaseModel):
     success: bool = True
     message: str
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str

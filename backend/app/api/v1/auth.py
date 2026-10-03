@@ -3,6 +3,7 @@ from app.core.dependencies import get_current_user
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.auth import (
+    GoogleAuthRequest,
     LoginRequest,
     RefreshTokenRequest,
     RegisterRequest,
@@ -42,6 +43,21 @@ async def register(
     user = await service.register(data)
 
     return await service.login_user(user)
+
+
+@router.post(
+    "/google",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def google_auth(
+    data: GoogleAuthRequest,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenResponse:
+
+    return await service.google_login(
+        data
+    )
 
 
 @router.post(

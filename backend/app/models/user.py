@@ -24,7 +24,7 @@ class User(BaseModel, table=True):
     
     last_name: str
     
-    phone: str
+    phone: str | None = None
 
     email: str = Field(
         unique=True,
@@ -32,7 +32,9 @@ class User(BaseModel, table=True):
         max_length=255,
     )
 
-    password_hash: str
+    password_hash: str | None = Field(default=None)
+
+    google_sub: str | None = Field(default=None, unique=True, index=True, max_length=255,)
 
     profile_picture_url: str | None = Field(
         default=None,

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = Field(...)
     EMAIL_FROM: str = Field(...)
     IMAGE_PROVIDER_API_KEY: str = Field(...)
+    GOOGLE_CLIENT_ID: str
 
 
 settings = Settings() #type: ignore

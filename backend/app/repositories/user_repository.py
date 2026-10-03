@@ -19,6 +19,24 @@ class UserRepository(BaseRepository[User]):
 
         return result.scalars().first()
 
+
+    async def get_by_google_sub(
+        self,
+        google_sub: str,
+    ) -> User | None:
+
+        statement = select(
+            User
+        ).where(
+            User.google_sub == google_sub
+        )
+
+        result = await self.session.execute(
+            statement
+        )
+
+        return result.scalars().first()
+
     async def get_by_phone(
         self,
         phone: str,
