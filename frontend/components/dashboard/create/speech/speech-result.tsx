@@ -219,6 +219,7 @@ export function SpeechResult({
         ====================================================== */}
 
         <MediaActions
+          activeMedia={showVoiceGenerator ? "voice" : null}
           onVoice={() => setShowVoiceGenerator((current) => !current)}
         />
 

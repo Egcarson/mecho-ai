@@ -41,14 +41,13 @@ type GuideStep = "quick" | "custom";
  * ImageGenerator
  *
  * Responsibilities:
- *
- * - loads existing image jobs independently of access;
- * - teaches Quick vs Custom Design with a small contextual guide;
- * - highlights the real mode controls during the guide;
- * - keeps image usage backend-authoritative;
- * - allows generation only when access is verified;
- * - keeps existing generated images visible after allowance ends;
- * - polls active image jobs until completion/failure.
+ * - loads existing image jobs independently of allowance;
+ * - introduces Quick and Custom Design through the actual mode controls;
+ * - keeps the rest of the image workspace visually subdued during the guide;
+ * - keeps image allowance backend-authoritative;
+ * - gates only NEW generation;
+ * - keeps previous images accessible after allowance ends;
+ * - polls active backend jobs until completion/failure.
  */
 export function ImageGenerator({
   generationUid,
@@ -86,13 +85,13 @@ export function ImageGenerator({
   });
 
   const imageAccess = usage ? getImageAccess(usage, workflow) : null;
-
   const canGenerateNewImage = Boolean(imageAccess?.allowed);
   const isSubmitting = requestMode !== null;
+  const guideActive = guideStep !== null;
 
   /**
-   * Keep the hidden source selector synchronized with the language/platform
-   * currently visible to the user.
+   * Keep the hidden source context synchronized with the content currently
+   * visible in Social or Campaign.
    */
   useEffect(() => {
     setCustomPayload((current) => ({
@@ -103,7 +102,8 @@ export function ImageGenerator({
   }, [sourceLanguage, sourceVariant]);
 
   /**
-   * A new content generation gets its own image state and lightweight guide.
+   * A different content generation starts with fresh image state and the
+   * lightweight two-step mode guide.
    */
   useEffect(() => {
     setImages([]);
@@ -118,19 +118,12 @@ export function ImageGenerator({
   const processFailures = useCallback(
     (records: GeneratedImage[], notify: boolean) => {
       for (const record of records) {
-        if (record.status !== "failed") {
-          continue;
-        }
-
-        if (notifiedFailureIds.current.has(record.uid)) {
-          continue;
-        }
+        if (record.status !== "failed") continue;
+        if (notifiedFailureIds.current.has(record.uid)) continue;
 
         notifiedFailureIds.current.add(record.uid);
 
-        if (!notify) {
-          continue;
-        }
+        if (!notify) continue;
 
         toast.error("Image generation failed.", {
           description:
@@ -142,9 +135,8 @@ export function ImageGenerator({
   );
 
   /**
-   * Existing images are intentionally loaded without considering quota.
-   *
-   * Usage controls NEW creation only.
+   * Existing designs load regardless of whether another generation is allowed.
+   * Quota/access only controls new provider work.
    */
   const loadImages = useCallback(
     async ({
@@ -155,9 +147,7 @@ export function ImageGenerator({
       notifyFailures?: boolean;
     } = {}) => {
       try {
-        if (!silent) {
-          setLoadingImages(true);
-        }
+        if (!silent) setLoadingImages(true);
 
         const response = await getGeneratedImages(generationUid);
 
@@ -175,9 +165,7 @@ export function ImageGenerator({
 
         return [];
       } finally {
-        if (!silent) {
-          setLoadingImages(false);
-        }
+        if (!silent) setLoadingImages(false);
       }
     },
     [generationUid, processFailures],
@@ -198,10 +186,11 @@ export function ImageGenerator({
     [images],
   );
 
+  /**
+   * Poll only while the backend still has image work in progress.
+   */
   useEffect(() => {
-    if (!hasActiveBackendJobs) {
-      return;
-    }
+    if (!hasActiveBackendJobs) return;
 
     const timer = window.setInterval(() => {
       void loadImages({
@@ -228,9 +217,7 @@ export function ImageGenerator({
   }
 
   function handleImmediateFailure(image: GeneratedImage) {
-    if (image.status !== "failed") {
-      return false;
-    }
+    if (image.status !== "failed") return false;
 
     notifiedFailureIds.current.add(image.uid);
 
@@ -243,9 +230,8 @@ export function ImageGenerator({
   }
 
   /**
-   * Scroll back to the beginning of the image experience before showing
-   * Custom Design. This prevents the longer custom form from appearing
-   * halfway down the viewport.
+   * Every mode transition returns the user to the beginning of the image
+   * workspace. Quick and Custom therefore behave consistently.
    */
   function scrollToGeneratorTop() {
     window.requestAnimationFrame(() => {
@@ -258,30 +244,37 @@ export function ImageGenerator({
 
   function selectMode(nextMode: DesignMode) {
     setMode(nextMode);
-
-    if (nextMode === "custom") {
-      scrollToGeneratorTop();
-    }
+    setGuideStep(null);
+    scrollToGeneratorTop();
   }
 
   /**
-   * The guide changes the highlighted real control rather than rendering
-   * duplicate fake Quick/Custom buttons.
+   * Guide navigation changes the real selected mode so the highlighted
+   * control always corresponds to what the guide is explaining.
    */
+  function goToQuickGuide() {
+    setGuideStep("quick");
+    setMode("quick");
+    scrollToGeneratorTop();
+  }
+
   function goToCustomGuide() {
     setGuideStep("custom");
     setMode("custom");
     scrollToGeneratorTop();
   }
 
+  /**
+   * Finishing the guide keeps the mode from the final guide step selected.
+   */
   function closeGuide() {
     setGuideStep(null);
+    scrollToGeneratorTop();
   }
 
   /**
    * Access is checked immediately before provider work.
-   *
-   * Existing images remain usable even if usage cannot be checked.
+   * Existing designs remain usable even if this check fails.
    */
   function canStartGeneration() {
     if (loadingUsage) {
@@ -312,15 +305,9 @@ export function ImageGenerator({
   }
 
   async function handleQuickDesign() {
-    if (requestMode || !canStartGeneration()) {
-      return;
-    }
+    if (requestMode || !canStartGeneration()) return;
 
     setRequestMode("quick");
-
-    toast.success("Image generation started.", {
-      description: "Mecho is creating your design.",
-    });
 
     try {
       const created = await createQuickDesign(generationUid, {
@@ -338,8 +325,8 @@ export function ImageGenerator({
       upsertImage(created);
 
       /**
-       * Backend owns the allowance. Synchronize after the accepted request
-       * rather than incrementing anything locally.
+       * Backend owns usage. Refresh allowance after every accepted generation
+       * rather than maintaining a frontend counter.
        */
       await refreshImageUsage();
 
@@ -362,19 +349,18 @@ export function ImageGenerator({
   }
 
   async function handleCustomDesign() {
-    if (requestMode || !canStartGeneration()) {
-      return;
-    }
+    if (requestMode || !canStartGeneration()) return;
 
     setRequestMode("custom");
-
-    toast.success("Image generation started.", {
-      description: "Mecho is creating your custom design.",
-    });
 
     try {
       const created = await createCustomDesign(generationUid, {
         ...customPayload,
+
+        /**
+         * Always overwrite these using the content selected at the exact
+         * moment generation begins.
+         */
         source_language: sourceLanguage,
         source_variant: sourceVariant,
       });
@@ -387,7 +373,6 @@ export function ImageGenerator({
       }
 
       upsertImage(created);
-
       await refreshImageUsage();
 
       if (created.status === "completed") {
@@ -411,277 +396,322 @@ export function ImageGenerator({
   return (
     <div
       ref={generatorTopRef}
-      className="mt-6 scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-border/60 bg-background"
+      className="relative mt-6 scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-border/60 bg-background"
     >
-      {/* =====================================================
-          HEADER + REAL MODE CONTROLS
+      {/* ======================================================
+          NORMAL WORKSPACE
+
+          During the guide this entire layer sits behind a subdued
+          backdrop. The actual mode selector is raised above it below.
       ====================================================== */}
 
-      <div className="px-5 py-5 sm:px-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-base font-semibold tracking-[-0.025em]">
-              Create a visual
-            </h3>
+      <div
+        className={`transition-[filter,opacity] duration-300 ${
+          guideActive
+            ? "pointer-events-none select-none blur-[3px] opacity-35"
+            : ""
+        }`}
+      >
+        {/* ====================================================
+            HEADER COPY
+        ==================================================== */}
 
-            <p className="mt-1 text-sm text-muted-foreground">
-              Turn this content into a design.
-            </p>
-          </div>
+        <div className="px-5 py-5 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold tracking-[-0.025em]">
+                Create a visual
+              </h3>
 
-          <div className="relative w-fit">
-            <div className="inline-flex w-fit rounded-full border border-border/70 bg-muted/30 p-1">
-              <ModeButton
-                active={mode === "quick"}
-                highlighted={guideStep === "quick"}
-                disabled={isSubmitting}
-                onClick={() => selectMode("quick")}
-                icon={Wand2}
-              >
-                Quick Design
-              </ModeButton>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Turn this content into a design.
+              </p>
+            </div>
 
-              <ModeButton
-                active={mode === "custom"}
-                highlighted={guideStep === "custom"}
-                disabled={isSubmitting}
-                onClick={() => selectMode("custom")}
-                icon={SlidersHorizontal}
-              >
-                Custom Design
-              </ModeButton>
+            {/* Placeholder preserves the selector's layout while the real
+                selector is rendered above the guide backdrop. */}
+            <div className="invisible inline-flex w-fit rounded-full border p-1">
+              <span className="px-3.5 py-2 text-xs">Quick Design</span>
+              <span className="px-3.5 py-2 text-xs">Custom Design</span>
             </div>
           </div>
         </div>
 
-        {/* ===================================================
-            SUBTLE TWO-STEP GUIDE
-
-            This points to the actual controls instead of duplicating them.
+        {/* ====================================================
+            WORKSPACE BODY
         ==================================================== */}
 
-        {guideStep && (
-          <div className="mt-4 flex max-w-xl items-start gap-3 rounded-2xl border border-mecho-purple/15 bg-mecho-purple-soft/30 px-4 py-3">
-            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-background text-mecho-purple shadow-sm">
-              {guideStep === "quick" ? (
-                <Wand2 className="size-4" />
-              ) : (
-                <SlidersHorizontal className="size-4" />
-              )}
+        <div className="border-t border-border/60 p-4 sm:p-5">
+          {/* Access information may remain visible behind the guide but
+              is deliberately softened until onboarding is completed. */}
+
+          {!loadingUsage && usageError && (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  Image access couldn&apos;t be checked
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Your existing designs are still available. Retry before
+                  creating another one.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void refreshImageUsage()}
+                className="inline-flex h-9 w-fit items-center rounded-full border border-border/70 px-4 text-xs font-medium transition-colors hover:bg-muted/50"
+              >
+                Retry
+              </button>
             </div>
+          )}
 
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">
-                {guideStep === "quick" ? "Quick Design" : "Custom Design"}
-              </p>
+          {!loadingUsage && imageAccess && !imageAccess.allowed && (
+            <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                <LockKeyhole className="size-4" />
+              </div>
 
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {guideStep === "quick"
-                  ? "Let Mecho handle the creative direction using the content you're viewing."
-                  : "Use Custom Design when you want control over your brand, text, colors, images and creative direction."}
-              </p>
+              <div>
+                <p className="text-sm font-semibold">{imageAccess.title}</p>
 
-              <div className="mt-3 flex items-center gap-2">
-                {guideStep === "custom" && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGuideStep("quick");
-                      setMode("quick");
-                    }}
-                    className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
-                  >
-                    <ChevronLeft className="size-3.5" />
-                    Back
-                  </button>
-                )}
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {imageAccess.message}
+                </p>
 
-                {guideStep === "quick" ? (
-                  <button
-                    type="button"
-                    onClick={goToCustomGuide}
-                    className="inline-flex h-8 items-center gap-1 rounded-full bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90"
-                  >
-                    Next
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={closeGuide}
-                    className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90"
-                  >
-                    Got it
-                  </button>
-                )}
+                {workflow === "social" &&
+                  typeof imageAccess.limit === "number" && (
+                    <p className="mt-2 text-xs font-medium text-muted-foreground">
+                      {imageAccess.used} of {imageAccess.limit} free image
+                      generations used
+                    </p>
+                  )}
               </div>
             </div>
+          )}
 
+          {/* ==================================================
+              CREATION CONTROLS
+
+              Do not mount these while the guide is visible.
+              This guarantees that "Generate design" does not appear before
+              the user has completed or dismissed the Quick/Custom guide.
+          ================================================== */}
+
+          {!guideActive &&
+            (mode === "quick" ? (
+              <div className="relative overflow-hidden rounded-[1.5rem] border border-border/60 bg-muted/20 p-5 sm:p-6">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-mecho-purple/10 blur-[70px]"
+                />
+
+                <div className="relative max-w-xl">
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-mecho-purple-soft text-mecho-purple">
+                    <Wand2 className="size-5" />
+                  </div>
+
+                  <h4 className="mt-4 text-base font-semibold tracking-[-0.02em]">
+                    Quick Design
+                  </h4>
+
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    Let Mecho create the visual directly from your generated
+                    content.
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled={
+                      isSubmitting || loadingUsage || !canGenerateNewImage
+                    }
+                    onClick={() => void handleQuickDesign()}
+                    className={`mt-5 inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                      canGenerateNewImage
+                        ? "bg-mecho-gradient text-white shadow-[0_10px_26px_rgba(111,44,255,0.18)] hover:-translate-y-0.5"
+                        : "border border-border/70 bg-muted/50 text-muted-foreground"
+                    }`}
+                  >
+                    {requestMode === "quick" ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : loadingUsage ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Checking access...
+                      </>
+                    ) : !canGenerateNewImage ? (
+                      <>
+                        <LockKeyhole className="size-4" />
+                        {workflow === "social"
+                          ? "Free limit used"
+                          : "Not available on Free"}
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="size-4" />
+                        Generate design
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="scroll-mt-24">
+                <ImageCustomDesignForm
+                  value={customPayload}
+                  onChange={setCustomPayload}
+                  onSubmit={() => void handleCustomDesign()}
+                  loading={requestMode === "custom"}
+                  disabled={
+                    loadingUsage || !canGenerateNewImage || isSubmitting
+                  }
+                />
+              </div>
+            ))}
+
+          {/* ==================================================
+              EXISTING / GENERATED IMAGES
+
+              Gallery access remains independent from allowance.
+          ================================================== */}
+
+          <div className="mt-6">
+            <GeneratedImageGallery
+              images={images}
+              projectUid={projectUid}
+              loading={loadingImages}
+              isStarting={isSubmitting}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================================
+          GUIDE BACKDROP
+
+          This visually suppresses the whole image workspace while leaving
+          only the real Quick / Custom controls and guide card in focus.
+      ====================================================== */}
+
+      {guideActive && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-20 bg-background/35 backdrop-blur-[2px]"
+        />
+      )}
+
+      {/* ======================================================
+          REAL MODE CONTROLS
+
+          These remain above the guide backdrop so the user is always looking
+          at the actual controls they will continue using afterwards.
+      ====================================================== */}
+
+      <div className="pointer-events-none absolute right-5 top-5 z-40 sm:right-6">
+        <div className="pointer-events-auto inline-flex w-fit rounded-full border border-mecho-purple/25 bg-background p-1 shadow-[0_12px_40px_rgba(111,44,255,0.12)]">
+          <ModeButton
+            active={mode === "quick"}
+            highlighted={guideStep === "quick"}
+            disabled={isSubmitting}
+            onClick={() => selectMode("quick")}
+            icon={Wand2}
+          >
+            Quick Design
+          </ModeButton>
+
+          <ModeButton
+            active={mode === "custom"}
+            highlighted={guideStep === "custom"}
+            disabled={isSubmitting}
+            onClick={() => selectMode("custom")}
+            icon={SlidersHorizontal}
+          >
+            Custom Design
+          </ModeButton>
+        </div>
+      </div>
+
+      {/* ======================================================
+          GUIDE COACHMARK
+      ====================================================== */}
+
+      {guideStep && (
+        <div className="absolute right-4 top-[5.2rem] z-40 w-[calc(100%-2rem)] max-w-sm sm:right-6 sm:top-[4.8rem]">
+          <div className="relative rounded-[1.25rem] border border-mecho-purple/20 bg-background p-4 shadow-[0_18px_55px_rgba(36,12,52,0.16)]">
             <button
               type="button"
               onClick={closeGuide}
               aria-label="Close design guide"
-              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
+              className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="size-3.5" />
             </button>
-          </div>
-        )}
-      </div>
 
-      <div className="border-t border-border/60 p-4 sm:p-5">
-        {/* ===================================================
-            ACCESS STATUS
-
-            Existing gallery access is never blocked. This only explains
-            whether another generation can be started.
-        ==================================================== */}
-
-        {!loadingUsage && usageError && (
-          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium">
-                Image access couldn't be checked
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Your existing designs are still available. Retry before creating
-                another one.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                void refreshImageUsage();
-              }}
-              className="inline-flex h-9 w-fit items-center rounded-full border border-border/70 px-4 text-xs font-medium transition-colors hover:bg-muted/50"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!loadingUsage && imageAccess && !imageAccess.allowed && (
-          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-              <LockKeyhole className="size-4" />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold">{imageAccess.title}</p>
-
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {imageAccess.message}
-              </p>
-
-              {workflow === "social" &&
-                typeof imageAccess.limit === "number" && (
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    {imageAccess.used} of {imageAccess.limit} free image
-                    generations used
-                  </p>
+            <div className="flex items-start gap-3 pr-8">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-mecho-purple-soft text-mecho-purple">
+                {guideStep === "quick" ? (
+                  <Wand2 className="size-4" />
+                ) : (
+                  <SlidersHorizontal className="size-4" />
                 )}
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================
-            QUICK DESIGN
-        ==================================================== */}
-
-        {mode === "quick" ? (
-          <div className="relative overflow-hidden rounded-[1.5rem] border border-border/60 bg-muted/20 p-5 sm:p-6">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-mecho-purple/10 blur-[70px]"
-            />
-
-            <div className="relative max-w-xl">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-mecho-purple-soft text-mecho-purple">
-                <Wand2 className="size-5" />
               </div>
 
-              <h4 className="mt-4 text-base font-semibold tracking-[-0.02em]">
-                Quick Design
-              </h4>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-mecho-purple">
+                  {guideStep === "quick" ? "Step 1 of 2" : "Step 2 of 2"}
+                </p>
 
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Let Mecho create the visual directly from your generated
-                content.
-              </p>
+                <h4 className="mt-1 text-sm font-semibold text-foreground">
+                  {guideStep === "quick" ? "Quick Design" : "Custom Design"}
+                </h4>
 
-              <button
-                type="button"
-                disabled={isSubmitting || loadingUsage || !canGenerateNewImage}
-                onClick={() => {
-                  void handleQuickDesign();
-                }}
-                className={`mt-5 inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-                  canGenerateNewImage
-                    ? "bg-mecho-gradient text-white shadow-[0_10px_26px_rgba(111,44,255,0.18)] hover:-translate-y-0.5"
-                    : "border border-border/70 bg-muted/50 text-muted-foreground"
-                }`}
-              >
-                {requestMode === "quick" ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : loadingUsage ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Checking access...
-                  </>
-                ) : !canGenerateNewImage ? (
-                  <>
-                    <LockKeyhole className="size-4" />
-                    {workflow === "social"
-                      ? "Free limit used"
-                      : "Not available on Free"}
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus className="size-4" />
-                    Generate design
-                  </>
-                )}
-              </button>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                  {guideStep === "quick"
+                    ? "Want Mecho to handle the creative direction? Use Quick Design for the fastest path."
+                    : "Need more control? Add your brand, colors, product images, text and creative preferences."}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              {guideStep === "custom" && (
+                <button
+                  type="button"
+                  onClick={goToQuickGuide}
+                  className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <ChevronLeft className="size-3.5" />
+                  Back
+                </button>
+              )}
+
+              {guideStep === "quick" ? (
+                <button
+                  type="button"
+                  onClick={goToCustomGuide}
+                  className="inline-flex h-8 items-center gap-1 rounded-full bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Next
+                  <ChevronRight className="size-3.5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={closeGuide}
+                  className="inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Got it
+                </button>
+              )}
             </div>
           </div>
-        ) : (
-          /* =================================================
-             CUSTOM DESIGN
-          ================================================== */
-
-          <div className="scroll-mt-24">
-            <ImageCustomDesignForm
-              value={customPayload}
-              onChange={setCustomPayload}
-              onSubmit={() => {
-                void handleCustomDesign();
-              }}
-              loading={requestMode === "custom"}
-              disabled={loadingUsage || !canGenerateNewImage || isSubmitting}
-            />
-          </div>
-        )}
-
-        {/* ===================================================
-            EXISTING / GENERATED IMAGES
-
-            This remains independent from access control.
-        ==================================================== */}
-
-        <div className="mt-6">
-          <GeneratedImageGallery
-            images={images}
-            projectUid={projectUid}
-            loading={loadingImages}
-            isStarting={isSubmitting}
-          />
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -706,13 +736,14 @@ function ModeButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      aria-pressed={active}
       className={`relative inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-all disabled:pointer-events-none disabled:opacity-50 ${
         active
-          ? "bg-background text-foreground shadow-sm"
+          ? "bg-mecho-purple-soft text-mecho-purple shadow-sm"
           : "text-muted-foreground hover:text-foreground"
       } ${
         highlighted
-          ? "z-10 ring-2 ring-mecho-purple/35 shadow-[0_0_0_6px_rgba(111,44,255,0.08)]"
+          ? "z-10 ring-2 ring-mecho-purple/40 shadow-[0_0_0_6px_rgba(111,44,255,0.10),0_10px_30px_rgba(111,44,255,0.12)]"
           : ""
       }`}
     >

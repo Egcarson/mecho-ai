@@ -360,12 +360,10 @@ export function SocialResult({
         ====================================================== */}
 
         <MediaActions
+          activeMedia={activeMedia}
           onVoice={() => toggleMedia("voice")}
           onImage={() => toggleMedia("image")}
-          onVideo={() => {
-            setActiveMedia(null);
-            toast.info("Video generation is coming soon.");
-          }}
+          onVideo={() => toast.info("Video generation is coming soon.")}
         />
 
         {/* ======================================================

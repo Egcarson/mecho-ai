@@ -2,47 +2,80 @@
 
 import { ImageIcon, Video, Volume2 } from "lucide-react";
 
+export type ActiveMedia = "voice" | "image" | "video" | null;
+
 type MediaActionsProps = {
+  activeMedia?: ActiveMedia;
   onVoice?: () => void;
   onImage?: () => void;
   onVideo?: () => void;
 };
 
-export function MediaActions({ onVoice, onImage, onVideo }: MediaActionsProps) {
+export function MediaActions({
+  activeMedia = null,
+  onVoice,
+  onImage,
+  onVideo,
+}: MediaActionsProps) {
   return (
     <div className="mt-8 flex flex-wrap gap-3">
       {onVoice && (
-        <button
-          type="button"
+        <MediaButton
+          active={activeMedia === "voice"}
           onClick={onVoice}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-border/70 bg-background px-5 text-sm font-medium text-foreground/80 transition-all hover:border-mecho-purple/20 hover:bg-mecho-purple-soft/40 hover:text-mecho-purple"
+          icon={Volume2}
         >
-          <Volume2 className="size-4" />
           Voice
-        </button>
+        </MediaButton>
       )}
 
       {onImage && (
-        <button
-          type="button"
+        <MediaButton
+          active={activeMedia === "image"}
           onClick={onImage}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-border/70 bg-background px-5 text-sm font-medium text-foreground/80 transition-all hover:border-mecho-purple/20 hover:bg-mecho-purple-soft/40 hover:text-mecho-purple"
+          icon={ImageIcon}
         >
-          <ImageIcon className="size-4" />
           Image
-        </button>
+        </MediaButton>
       )}
 
       {onVideo && (
-        <button
-          type="button"
+        <MediaButton
+          active={activeMedia === "video"}
           onClick={onVideo}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-border/70 bg-background px-5 text-sm font-medium text-foreground/80 transition-all hover:border-mecho-purple/20 hover:bg-mecho-purple-soft/40 hover:text-mecho-purple"
+          icon={Video}
         >
-          <Video className="size-4" />
           Video
-        </button>
+        </MediaButton>
       )}
     </div>
+  );
+}
+
+function MediaButton({
+  active,
+  onClick,
+  icon: Icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex h-11 items-center gap-2 rounded-full border px-5 text-sm font-medium transition-all ${
+        active
+          ? "border-mecho-purple/25 bg-mecho-purple-soft text-mecho-purple shadow-[0_0_0_4px_rgba(111,44,255,0.07)]"
+          : "border-border/70 bg-background text-foreground/80 hover:border-mecho-purple/20 hover:bg-mecho-purple-soft/40 hover:text-mecho-purple"
+      }`}
+    >
+      <Icon className="size-4" />
+      {children}
+    </button>
   );
 }

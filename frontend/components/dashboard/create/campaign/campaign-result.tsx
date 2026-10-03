@@ -355,6 +355,7 @@ export function CampaignResult({
             ================================================== */}
 
             <MediaActions
+              activeMedia={activeMedia}
               onVoice={() => toggleMedia("voice")}
               onImage={() => toggleMedia("image")}
             />
