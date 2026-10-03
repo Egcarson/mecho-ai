@@ -104,8 +104,6 @@ type AuthUserLike = {
   email: string;
 
   profile_picture_url: string | null;
-
-  avatar: string | null;
 };
 
 export default function DashboardLayout({
@@ -356,7 +354,6 @@ function AuthenticatedDashboardShell({
             firstName={user.first_name}
             lastName={user.last_name}
             profilePictureUrl={user.profile_picture_url}
-            legacyAvatar={user.avatar}
             className="size-9"
           />
         </button>
@@ -546,7 +543,6 @@ function DesktopSidebar({
               firstName={user.first_name}
               lastName={user.last_name}
               profilePictureUrl={user.profile_picture_url}
-              legacyAvatar={user.avatar}
               className="size-9"
             />
 
@@ -998,7 +994,6 @@ function MobileMoreSheet({
               firstName={user.first_name}
               lastName={user.last_name}
               profilePictureUrl={user.profile_picture_url}
-              legacyAvatar={user.avatar}
               className="size-12"
             />
 

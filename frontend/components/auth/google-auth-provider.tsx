@@ -7,10 +7,10 @@ export function GoogleAuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const clientId = process.env.NEXT_GOOGLE_CLIENT_ID;
 
   if (!clientId) {
-    console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured.");
+    console.error("NEXT_GOOGLE_CLIENT_ID is not configured.");
 
     return children;
   }

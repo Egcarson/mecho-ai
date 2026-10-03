@@ -332,9 +332,7 @@ export function Navbar() {
                   >
                     <Avatar className="size-8">
                       <AvatarImage
-                        src={
-                          user.profile_picture_url ?? user.avatar ?? undefined
-                        }
+                        src={user.profile_picture_url ?? undefined}
                         alt={fullName}
                       />
 
@@ -509,7 +507,7 @@ export function Navbar() {
               <Link href="/dashboard" aria-label="Open dashboard">
                 <Avatar className="size-8">
                   <AvatarImage
-                    src={user.profile_picture_url ?? user.avatar ?? undefined}
+                    src={user.profile_picture_url ?? undefined}
                     alt={fullName}
                   />
 
