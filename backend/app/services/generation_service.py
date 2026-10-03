@@ -118,7 +118,7 @@ class GenerationService:
 
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="AI generation failed. Our model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+                detail="AI generation is temporarily unavailable. Please try again shortly.",
             )
 
         generation = await self.generations.update(
