@@ -35,7 +35,7 @@ class ProjectCreate(BaseModel):
     )
 
     length: ContentLength = (
-        ContentLength.MEDIUM
+        ContentLength.SHORT
     )
 
     target_duration_minutes: int | None = None

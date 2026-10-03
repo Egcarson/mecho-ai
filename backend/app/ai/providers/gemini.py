@@ -184,8 +184,8 @@ class GeminiProvider(AIProvider):
     # so changing the environment variable still controls
     # Mecho's primary model.
     FALLBACK_MODELS = (
+        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
-        "gemini-2.5-flash",
     )
 
     def __init__(self):
