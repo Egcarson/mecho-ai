@@ -11,14 +11,13 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { AuthShell } from "@/components/auth/auth-shell";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { useRouter } from "next/navigation";
-
 import { apiFetch } from "@/lib/api";
 
 type SignupData = {
@@ -129,21 +128,14 @@ export default function SignupPage() {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [step, setStep] = useState(0);
-
   const [formData, setFormData] = useState<SignupData>(initialFormData);
-
   const [error, setError] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
 
   const currentStep = signupSteps[step];
-
   const isLastStep = step === signupSteps.length - 1;
-
   const progress = ((step + 1) / signupSteps.length) * 100;
-
   const currentValue = formData[currentStep.key];
 
   const firstName = useMemo(
@@ -234,7 +226,6 @@ export default function SignupPage() {
 
     setError("");
     setShowPassword(false);
-
     setStep((current) => current - 1);
   }
 
@@ -248,8 +239,6 @@ export default function SignupPage() {
   async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Extra safeguard:
-    // registration must NEVER happen before the final step.
     if (!isLastStep) {
       nextStep();
       return;
@@ -257,7 +246,6 @@ export default function SignupPage() {
 
     if (!validateCurrentStep()) return;
 
-    // Only the final step should create the account.
     setError("");
     setIsSubmitting(true);
 
@@ -303,49 +291,45 @@ export default function SignupPage() {
   return (
     <AuthShell mode="signup">
       <div className="w-full">
+        {/* Google stays only at the beginning of signup.
+            If Google succeeds, the backend creates/links the account directly,
+            so the manual 7-step registration flow is skipped entirely. */}
+        {step === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-7"
+          >
+            <GoogleAuthButton disabled={isSubmitting} />
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border/60" />
+              <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                or create it your way
+              </span>
+              <div className="h-px flex-1 bg-border/60" />
+            </div>
+          </motion.div>
+        )}
+
         {/* Progress */}
         <div className="mb-10">
           <div className="mb-3 flex items-center justify-between">
-            <span
-              className="
-                text-xs font-medium
-                text-muted-foreground
-              "
-            >
+            <span className="text-xs font-medium text-muted-foreground">
               Step {step + 1} of {signupSteps.length}
             </span>
 
-            <span
-              className="
-                text-xs font-medium
-                text-muted-foreground
-              "
-            >
+            <span className="text-xs font-medium text-muted-foreground">
               {Math.round(progress)}%
             </span>
           </div>
 
-          <div
-            className="
-              h-1 w-full
-              overflow-hidden
-              rounded-full
-              bg-muted
-            "
-          >
+          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
             <motion.div
-              animate={{
-                width: `${progress}%`,
-              }}
-              transition={{
-                duration: 0.45,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="
-                h-full
-                rounded-full
-                bg-mecho-gradient
-              "
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full rounded-full bg-mecho-gradient"
             />
           </div>
         </div>
@@ -370,65 +354,27 @@ export default function SignupPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep.key}
-              initial={{
-                opacity: 0,
-                x: 22,
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-              }}
-              exit={{
-                opacity: 0,
-                x: -18,
-              }}
-              transition={{
-                duration: 0.42,
-                ease: [0.22, 1, 0.36, 1],
-              }}
+              initial={{ opacity: 0, x: 22 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             >
               {/* Mecho prompt */}
               <div>
-                <p
-                  className="
-                    text-xs
-                    font-semibold
-                    uppercase
-                    tracking-[0.18em]
-                    text-mecho-purple
-                  "
-                >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mecho-purple">
                   {personalisedEyebrow}
                 </p>
 
-                <h1
-                  className="
-                    mt-4
-                    text-4xl
-                    font-semibold
-                    leading-[1.05]
-                    tracking-[-0.045em]
-                    text-foreground
-                    sm:text-5xl
-                  "
-                >
+                <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-foreground sm:text-5xl">
                   {currentStep.title}
                 </h1>
 
-                <p
-                  className="
-                    mt-4
-                    max-w-lg
-                    text-base
-                    leading-7
-                    text-muted-foreground
-                  "
-                >
+                <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">
                   {currentStep.description}
                 </p>
               </div>
 
-              {/* One input only */}
+              {/* One field per step */}
               <div className="mt-9">
                 <div className="relative">
                   <Input
@@ -446,31 +392,9 @@ export default function SignupPage() {
                     onChange={(event) => updateCurrentValue(event.target.value)}
                     placeholder={currentStep.placeholder}
                     autoComplete={currentStep.autoComplete}
-                    className={`
-                      h-14
-                      rounded-2xl
-                      border-border/80
-                      bg-background
-                      px-5
-
-                      text-[17px]
-                      font-medium
-                      tracking-[-0.01em]
-
-                      placeholder:text-[17px]
-                      placeholder:font-normal
-                      placeholder:text-muted-foreground/60
-
-                      shadow-[0_8px_30px_rgba(47,1,117,0.04)]
-
-                      transition-all
-                      duration-300
-
-                      focus-visible:border-mecho-purple/50
-                      focus-visible:ring-mecho-purple/15
-
-                      ${currentStep.type === "password" ? "pr-12" : ""}
-                    `}
+                    className={`h-14 rounded-2xl border-border/80 bg-background px-5 text-[17px] font-medium tracking-[-0.01em] shadow-[0_8px_30px_rgba(47,1,117,0.04)] transition-all duration-300 placeholder:text-[17px] placeholder:font-normal placeholder:text-muted-foreground/60 focus-visible:border-mecho-purple/50 focus-visible:ring-mecho-purple/15 ${
+                      currentStep.type === "password" ? "pr-12" : ""
+                    }`}
                   />
 
                   {currentStep.type === "password" && (
@@ -480,14 +404,7 @@ export default function SignupPage() {
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
-                      className="
-                        absolute
-                        right-4 top-1/2
-                        -translate-y-1/2
-                        text-muted-foreground
-                        transition-colors
-                        hover:text-foreground
-                      "
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {showPassword ? (
                         <EyeOff className="size-[18px]" />
@@ -500,15 +417,7 @@ export default function SignupPage() {
 
                 {/* Password assistance */}
                 {currentStep.key === "password" && (
-                  <div
-                    className="
-                      mt-4
-                      flex flex-wrap
-                      gap-x-5 gap-y-2
-                      text-xs
-                      text-muted-foreground
-                    "
-                  >
+                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Check className="size-3.5" />
                       At least 8 characters
@@ -525,23 +434,10 @@ export default function SignupPage() {
                 <AnimatePresence>
                   {error && (
                     <motion.p
-                      initial={{
-                        opacity: 0,
-                        y: -3,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      exit={{
-                        opacity: 0,
-                      }}
-                      className="
-                        mt-3
-                        text-sm
-                        font-medium
-                        text-destructive
-                      "
+                      initial={{ opacity: 0, y: -3 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-3 text-sm font-medium text-destructive"
                     >
                       {error}
                     </motion.p>
@@ -550,27 +446,14 @@ export default function SignupPage() {
               </div>
 
               {/* Navigation */}
-              <div
-                className="
-                  mt-9
-                  flex
-                  items-center
-                  justify-between
-                  gap-4
-                "
-              >
+              <div className="mt-9 flex items-center justify-between gap-4">
                 {step > 0 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={previousStep}
-                    className="
-                      rounded-full
-                      px-3
-                      text-muted-foreground
-                      hover:bg-mecho-purple-soft
-                      hover:text-mecho-purple
-                    "
+                    disabled={isSubmitting}
+                    className="rounded-full px-3 text-muted-foreground hover:bg-mecho-purple-soft hover:text-mecho-purple"
                   >
                     <ArrowLeft className="mr-2 size-4" />
                     Back
@@ -585,10 +468,8 @@ export default function SignupPage() {
                       type="button"
                       variant="ghost"
                       onClick={skipStep}
-                      className="
-                        rounded-full
-                        text-muted-foreground
-                      "
+                      disabled={isSubmitting}
+                      className="rounded-full text-muted-foreground"
                     >
                       Skip
                     </Button>
@@ -615,38 +496,24 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Terms only near completion */}
+              {/* Terms */}
               {isLastStep && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="
-                    mt-7
-                    text-center
-                    text-xs
-                    leading-6
-                    text-muted-foreground
-                  "
+                  className="mt-7 text-center text-xs leading-6 text-muted-foreground"
                 >
                   By creating an account, you agree to Mecho&apos;s{" "}
                   <Link
                     href="/terms"
-                    className="
-                      font-medium
-                      text-foreground
-                      hover:text-mecho-purple
-                    "
+                    className="font-medium text-foreground hover:text-mecho-purple"
                   >
                     Terms
                   </Link>{" "}
                   and{" "}
                   <Link
                     href="/privacy"
-                    className="
-                      font-medium
-                      text-foreground
-                      hover:text-mecho-purple
-                    "
+                    className="font-medium text-foreground hover:text-mecho-purple"
                   >
                     Privacy Policy
                   </Link>

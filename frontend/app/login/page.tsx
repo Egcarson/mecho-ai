@@ -6,20 +6,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAuth } from "@/components/auth/auth-provider";
 
+import { useAuth } from "@/components/auth/auth-provider";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AuthUser } from "@/types/auth";
 
 type LoginData = {
   email: string;
   password: string;
-};
-
-type LoginClientResponse = {
-  user: AuthUser;
 };
 
 const steps = [
@@ -45,25 +41,20 @@ const steps = [
 
 export default function LoginPage() {
   const router = useRouter();
-
   const { user, loading, refreshUser } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [step, setStep] = useState(0);
-
   const [formData, setFormData] = useState<LoginData>({
     email: "",
     password: "",
   });
-
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const currentStep = steps[step];
   const currentValue = formData[currentStep.key];
   const isLastStep = step === steps.length - 1;
-
   const progress = ((step + 1) / steps.length) * 100;
 
   useEffect(() => {
@@ -135,8 +126,6 @@ export default function LoginPage() {
   async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Extra safeguard:
-    // registration must NEVER happen before the final step.
     if (!isLastStep) {
       nextStep();
       return;
@@ -153,13 +142,23 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
+        cache: "no-store",
         body: JSON.stringify({
           email: formData.email.trim(),
           password: formData.password,
         }),
       });
 
-      const data = await response.json();
+      let data: {
+        detail?: string;
+      } = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        // Fall through to the generic error below.
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -167,16 +166,17 @@ export default function LoginPage() {
         );
       }
 
-      console.log("NEXT LOGIN RESPONSE:", data);
+      const authenticatedUser = await refreshUser();
 
-      await refreshUser();
+      if (!authenticatedUser) {
+        throw new Error(
+          "Your session was created, but Mecho couldn't load your profile.",
+        );
+      }
 
       toast.success("Welcome back", {
         description: "Your Mecho workspace is ready.",
       });
-
-      // We'll handle tokens/session after confirming
-      // the exact backend response structure.
 
       router.replace("/dashboard");
     } catch (error) {
@@ -194,7 +194,25 @@ export default function LoginPage() {
   return (
     <AuthShell mode="login">
       <div className="w-full">
-        {/* Progress */}
+        {step === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-7"
+          >
+            <GoogleAuthButton disabled={isSubmitting} />
+
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border/60" />
+              <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                or use Gmail
+              </span>
+              <div className="h-px flex-1 bg-border/60" />
+            </div>
+          </motion.div>
+        )}
+
         <div className="mb-10">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">
@@ -206,27 +224,11 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <div
-            className="
-              h-1 w-full
-              overflow-hidden
-              rounded-full
-              bg-muted
-            "
-          >
+          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
             <motion.div
-              animate={{
-                width: `${progress}%`,
-              }}
-              transition={{
-                duration: 0.45,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="
-                h-full
-                rounded-full
-                bg-mecho-gradient
-              "
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full rounded-full bg-mecho-gradient"
             />
           </div>
         </div>
@@ -251,65 +253,25 @@ export default function LoginPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep.key}
-              initial={{
-                opacity: 0,
-                x: 22,
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-              }}
-              exit={{
-                opacity: 0,
-                x: -18,
-              }}
-              transition={{
-                duration: 0.42,
-                ease: [0.22, 1, 0.36, 1],
-              }}
+              initial={{ opacity: 0, x: 22 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Prompt */}
               <div>
-                <p
-                  className="
-                    text-xs
-                    font-semibold
-                    uppercase
-                    tracking-[0.18em]
-                    text-mecho-purple
-                  "
-                >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mecho-purple">
                   {currentStep.eyebrow}
                 </p>
 
-                <h1
-                  className="
-                    mt-4
-                    text-4xl
-                    font-semibold
-                    leading-[1.05]
-                    tracking-[-0.045em]
-                    text-foreground
-                    sm:text-5xl
-                  "
-                >
+                <h1 className="mt-4 text-4xl font-semibold leading-[1.05] tracking-[-0.045em] text-foreground sm:text-5xl">
                   {currentStep.title}
                 </h1>
 
-                <p
-                  className="
-                    mt-4
-                    max-w-lg
-                    text-base
-                    leading-7
-                    text-muted-foreground
-                  "
-                >
+                <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">
                   {currentStep.description}
                 </p>
               </div>
 
-              {/* One input */}
               <div className="mt-9">
                 <div className="relative">
                   <Input
@@ -326,31 +288,9 @@ export default function LoginPage() {
                     onChange={(event) => updateCurrentValue(event.target.value)}
                     placeholder={currentStep.placeholder}
                     autoComplete={currentStep.autoComplete}
-                    className={`
-                      h-14
-                      rounded-2xl
-                      border-border/80
-                      bg-background
-                      px-5
-
-                      text-[17px]
-                      font-medium
-                      tracking-[-0.01em]
-
-                      placeholder:text-[17px]
-                      placeholder:font-normal
-                      placeholder:text-muted-foreground/60
-
-                      shadow-[0_8px_30px_rgba(47,1,117,0.04)]
-
-                      transition-all
-                      duration-300
-
-                      focus-visible:border-mecho-purple/50
-                      focus-visible:ring-mecho-purple/15
-
-                      ${currentStep.type === "password" ? "pr-12" : ""}
-                    `}
+                    className={`h-14 rounded-2xl border-border/80 bg-background px-5 text-[17px] font-medium tracking-[-0.01em] shadow-[0_8px_30px_rgba(47,1,117,0.04)] transition-all duration-300 placeholder:text-[17px] placeholder:font-normal placeholder:text-muted-foreground/60 focus-visible:border-mecho-purple/50 focus-visible:ring-mecho-purple/15 ${
+                      currentStep.type === "password" ? "pr-12" : ""
+                    }`}
                   />
 
                   {currentStep.type === "password" && (
@@ -360,15 +300,7 @@ export default function LoginPage() {
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
-                      className="
-                        absolute
-                        right-4 top-1/2
-                        -translate-y-1/2
-                        text-muted-foreground
-                        transition-colors
-                        hover:text-foreground
-                        text-sm font-medium
-                      "
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {showPassword ? (
                         <EyeOff className="size-[18px]" />
@@ -379,45 +311,24 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                {/* Forgot password */}
                 {currentStep.key === "password" && (
                   <div className="mt-4 flex justify-end">
                     <Link
                       href="/forgot-password"
-                      className="
-                        text-sm
-                        font-medium
-                        text-mecho-purple
-                        transition-opacity
-                        hover:opacity-75
-                      "
+                      className="text-sm font-medium text-mecho-purple transition-opacity hover:opacity-75"
                     >
                       Forgot password?
                     </Link>
                   </div>
                 )}
 
-                {/* Error */}
                 <AnimatePresence>
                   {error && (
                     <motion.p
-                      initial={{
-                        opacity: 0,
-                        y: -3,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      exit={{
-                        opacity: 0,
-                      }}
-                      className="
-                        mt-3
-                        text-sm
-                        font-medium
-                        text-destructive
-                      "
+                      initial={{ opacity: 0, y: -3 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-3 text-sm font-medium text-destructive"
                     >
                       {error}
                     </motion.p>
@@ -425,27 +336,14 @@ export default function LoginPage() {
                 </AnimatePresence>
               </div>
 
-              {/* Actions */}
-              <div
-                className="
-                  mt-9
-                  flex items-center
-                  justify-between
-                  gap-4
-                "
-              >
+              <div className="mt-9 flex items-center justify-between gap-4">
                 {step > 0 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={previousStep}
-                    className="
-                      rounded-full
-                      px-3
-                      text-muted-foreground
-                      hover:bg-mecho-purple-soft
-                      hover:text-mecho-purple
-                    "
+                    disabled={isSubmitting}
+                    className="rounded-full px-3 text-muted-foreground hover:bg-mecho-purple-soft hover:text-mecho-purple"
                   >
                     <ArrowLeft className="mr-2 size-4" />
                     Back
@@ -458,22 +356,7 @@ export default function LoginPage() {
                   type={isLastStep ? "submit" : "button"}
                   onClick={isLastStep ? undefined : nextStep}
                   disabled={isSubmitting}
-                  className="
-                    h-11
-                    rounded-full
-                    border-0
-                    bg-mecho-gradient
-                    px-6
-                    font-medium
-                    text-white
-                    shadow-[0_10px_28px_rgba(111,44,255,0.18)]
-                    transition-all
-                    duration-300
-                    hover:-translate-y-0.5
-                    hover:shadow-[0_14px_36px_rgba(111,44,255,0.26)]
-                    disabled:pointer-events-none
-                    disabled:opacity-60
-                  "
+                  className="h-11 rounded-full border-0 bg-mecho-gradient px-6 font-medium text-white shadow-[0_10px_28px_rgba(111,44,255,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(111,44,255,0.26)] disabled:pointer-events-none disabled:opacity-60"
                 >
                   {isLastStep && isSubmitting ? (
                     <>

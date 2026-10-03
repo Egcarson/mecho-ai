@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 
 import { CookieConsentProvider } from "@/components/cookies/cookie-consent-provider";
+import { GoogleAuthProvider } from "@/components/auth/google-auth-provider";
 
 import "./globals.css";
 
@@ -62,30 +63,32 @@ export default function RootLayout({
            * provider.
            */}
           <CookieConsentProvider>
-            <AuthProvider>
-              {children}
+            <GoogleAuthProvider>
+              <AuthProvider>
+                {children}
 
-              <Toaster
-                position="top-right"
-                richColors={false}
-                closeButton
-                toastOptions={{
-                  duration: 4200,
+                <Toaster
+                  position="top-right"
+                  richColors={false}
+                  closeButton
+                  toastOptions={{
+                    duration: 4200,
 
-                  classNames: {
-                    toast:
-                      "rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-2xl backdrop-blur-xl",
+                    classNames: {
+                      toast:
+                        "rounded-2xl border border-border/70 bg-background/90 text-foreground shadow-2xl backdrop-blur-xl",
 
-                    title: "text-sm font-semibold tracking-[-0.01em]",
+                      title: "text-sm font-semibold tracking-[-0.01em]",
 
-                    description: "text-sm leading-6 text-muted-foreground",
+                      description: "text-sm leading-6 text-muted-foreground",
 
-                    closeButton:
-                      "border-border bg-background text-muted-foreground hover:text-foreground",
-                  },
-                }}
-              />
-            </AuthProvider>
+                      closeButton:
+                        "border-border bg-background text-muted-foreground hover:text-foreground",
+                    },
+                  }}
+                />
+              </AuthProvider>
+            </GoogleAuthProvider>
           </CookieConsentProvider>
         </ThemeProvider>
       </body>

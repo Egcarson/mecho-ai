@@ -1,16 +1,22 @@
+export type UserPreferences = {
+  default_language: string | null;
+  default_tone: string | null;
+  default_voice: string | null;
+  default_workflow: string | null;
+  preferences: Record<string, unknown>;
+};
+
 export type AuthUser = {
   uid: string;
   first_name: string;
   middle_name: string | null;
   last_name: string;
   email: string;
-  phone: string;
+  phone: string | null;
   profile_picture_url: string | null;
-  avatar: string | null;
-  role: string;
-  provider: string;
   is_verified: boolean;
-  created_at: string;
+  is_active: boolean;
+  preferences: UserPreferences | null;
 };
 
 export type AuthResponse = {
